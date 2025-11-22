@@ -1,0 +1,114 @@
+/**
+ * 主界面初始化
+ */
+
+let currentUser = null;
+let currentPage = 'products';
+
+// 初始化
+document.addEventListener('DOMContentLoaded', async () => {
+    // 检查登录状态
+    const user = await window.checkAuth();
+    if (!user) {
+        window.location.href = '/';
+        return;
+    }
+    
+    currentUser = user;
+    initUI();
+    initNavigation();
+    loadProducts();
+});
+
+// 初始化UI
+function initUI() {
+    // 设置用户信息
+    document.getElementById('userName').textContent = currentUser.username;
+    document.getElementById('userType').textContent = currentUser.user_type;
+    document.getElementById('userAvatar').textContent = currentUser.username.charAt(0).toUpperCase();
+    
+    // 根据用户类型显示/隐藏功能
+    if (currentUser.user_type === '厂家') {
+        document.getElementById('cartBtn').style.display = 'none';
+        document.getElementById('statisticsNav').style.display = 'none';
+    } else {
+        document.getElementById('cartBtn').style.display = 'inline-flex';
+        document.getElementById('statisticsNav').style.display = 'flex';
+    }
+    
+    // 购物车按钮
+    document.getElementById('cartBtn').addEventListener('click', () => {
+        openCartModal();
+    });
+    
+    // 商品管理按钮
+    if (currentUser.user_type === '管理员' || currentUser.user_type === '厂家') {
+        document.getElementById('productsActions').style.display = 'flex';
+    }
+    
+    // 服务记录按钮
+    if (currentUser.user_type === '厂家') {
+        document.getElementById('servicesActions').style.display = 'flex';
+    }
+    
+    // 用户管理
+    if (currentUser.user_type === '管理员') {
+        document.getElementById('usersManagementCard').style.display = 'block';
+        loadUsers();
+    }
+    
+    // 内部价格列
+    if (currentUser.user_type === '厂家') {
+        document.getElementById('internalPriceHeader').style.display = 'none';
+    } else {
+        document.getElementById('internalPriceHeader').style.display = 'table-cell';
+    }
+}
+
+// 初始化导航
+function initNavigation() {
+    const navItems = document.querySelectorAll('.sidebar-nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const page = item.dataset.page;
+            switchPage(page);
+        });
+    });
+}
+
+// 切换页面
+function switchPage(page) {
+    // 更新导航状态
+    document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.querySelector(`[data-page="${page}"]`).classList.add('active');
+    
+    // 更新页面显示
+    document.querySelectorAll('.page-content').forEach(content => {
+        content.style.display = 'none';
+    });
+    document.getElementById(`${page}Page`).style.display = 'block';
+    
+    currentPage = page;
+    
+    // 加载对应页面数据
+    switch (page) {
+        case 'products':
+            loadProducts();
+            break;
+        case 'orders':
+            loadOrders();
+            break;
+        case 'services':
+            loadServices();
+            break;
+        case 'statistics':
+            loadStatistics();
+            break;
+        case 'settings':
+            // 设置页面不需要加载数据
+            break;
+    }
+}
+

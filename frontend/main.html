@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>报价及记账系统</title>
+    <link rel="stylesheet" href="/static/style_example.css">
+    <link rel="stylesheet" href="/frontend/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fas fa-box"></i> 报价记账系统</h3>
+        </div>
+        <div class="sidebar-nav">
+            <div class="sidebar-nav-item active" data-page="products">
+                <i class="fas fa-list"></i>
+                <span>商品列表</span>
+            </div>
+            <div class="sidebar-nav-item" data-page="orders">
+                <i class="fas fa-shopping-cart"></i>
+                <span>订单列表</span>
+            </div>
+            <div class="sidebar-nav-item" data-page="services">
+                <i class="fas fa-tools"></i>
+                <span>服务记录</span>
+            </div>
+            <div class="sidebar-nav-item" data-page="statistics" id="statisticsNav" style="display: none;">
+                <i class="fas fa-chart-bar"></i>
+                <span>统计信息</span>
+            </div>
+            <div class="sidebar-nav-item" data-page="settings">
+                <i class="fas fa-cog"></i>
+                <span>系统设置</span>
+            </div>
+        </div>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar" id="userAvatar">U</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="userName">用户名</div>
+                    <div class="sidebar-user-type" id="userType">用户类型</div>
+                </div>
+            </div>
+            <div class="sidebar-actions">
+                <button class="btn btn-secondary" id="cartBtn" style="display: none;">
+                    <i class="fas fa-shopping-cart"></i>
+                </button>
+                <button class="btn btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    登出
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+        <!-- 商品列表页面 -->
+        <div id="productsPage" class="page-content active">
+            <div class="page-header">
+                <h1><i class="fas fa-list"></i> 商品列表</h1>
+                <div class="page-actions" id="productsActions" style="display: none;">
+                    <button class="btn btn-primary" onclick="openProductModal()">
+                        <i class="fas fa-plus"></i> 新建商品
+                    </button>
+                </div>
+            </div>
+            <div class="filter-section">
+                <div class="filter-row">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>商品名称</label>
+                        <input type="text" id="filterProductName" placeholder="输入商品名称">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>型号</label>
+                        <input type="text" id="filterProductModel" placeholder="输入型号">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>最低价格</label>
+                        <input type="text" id="filterMinPrice" placeholder="最低价格">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>最高价格</label>
+                        <input type="text" id="filterMaxPrice" placeholder="最高价格">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end;">
+                        <button class="btn btn-primary" onclick="loadProducts()">
+                            <i class="fas fa-search"></i> 搜索
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 12%;">操作</th>
+                            <th style="width: 20%;">商品名</th>
+                            <th style="width: 12%;">型号</th>
+                            <th style="width: 18%;">规格</th>
+                            <th id="internalPriceHeader" style="display: none; width: 10%;">内部价格</th>
+                            <th style="width: 10%;">含税价格</th>
+                            <th style="width: 18%;">厂家</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 40px;">
+                                <i class="fas fa-spinner fa-spin"></i> 加载中...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="productsPagination"></div>
+        </div>
+
+        <!-- 订单列表页面 -->
+        <div id="ordersPage" class="page-content" style="display: none;">
+            <div class="page-header">
+                <h1><i class="fas fa-shopping-cart"></i> 订单列表</h1>
+            </div>
+            <div class="filter-section">
+                <div class="filter-row">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>厂家</label>
+                        <select id="filterOrderSupplier" style="width: 100%;">
+                            <option value="">全部</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>订单内容</label>
+                        <input type="text" id="filterOrderContent" placeholder="搜索订单内容">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>状态</label>
+                        <select id="filterOrderStatus" style="width: 100%;">
+                            <option value="">全部</option>
+                            <option value="暂存">暂存</option>
+                            <option value="发起">发起</option>
+                            <option value="确认">确认</option>
+                            <option value="无效">无效</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end;">
+                        <button class="btn btn-primary" onclick="loadOrders()">
+                            <i class="fas fa-search"></i> 搜索
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 12%;">操作</th>
+                            <th style="width: 8%;">订单ID</th>
+                            <th style="width: 15%;">厂家</th>
+                            <th style="width: 35%;">订单内容</th>
+                            <th style="width: 10%;">状态</th>
+                            <th style="width: 20%;">创建时间</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 40px;">
+                                <i class="fas fa-spinner fa-spin"></i> 加载中...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="ordersPagination"></div>
+        </div>
+
+        <!-- 服务记录页面 -->
+        <div id="servicesPage" class="page-content" style="display: none;">
+            <div class="page-header">
+                <h1><i class="fas fa-tools"></i> 服务记录</h1>
+                <div class="page-actions" id="servicesActions" style="display: none;">
+                    <button class="btn btn-primary" onclick="openServiceModal()">
+                        <i class="fas fa-plus"></i> 录入服务记录
+                    </button>
+                </div>
+            </div>
+            <div class="filter-section">
+                <div class="filter-row">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>厂家</label>
+                        <select id="filterServiceSupplier" style="width: 100%;">
+                            <option value="">全部</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>服务内容</label>
+                        <input type="text" id="filterServiceContent" placeholder="搜索服务内容">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>状态</label>
+                        <select id="filterServiceStatus" style="width: 100%;">
+                            <option value="">全部</option>
+                            <option value="暂存">暂存</option>
+                            <option value="发起">发起</option>
+                            <option value="确认">确认</option>
+                            <option value="无效">无效</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end;">
+                        <button class="btn btn-primary" onclick="loadServices()">
+                            <i class="fas fa-search"></i> 搜索
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 12%;">操作</th>
+                            <th style="width: 8%;">服务ID</th>
+                            <th style="width: 15%;">厂家</th>
+                            <th style="width: 30%;">服务内容</th>
+                            <th style="width: 10%;">金额</th>
+                            <th style="width: 10%;">状态</th>
+                            <th style="width: 15%;">创建时间</th>
+                        </tr>
+                    </thead>
+                    <tbody id="servicesTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 40px;">
+                                <i class="fas fa-spinner fa-spin"></i> 加载中...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="servicesPagination"></div>
+        </div>
+
+        <!-- 统计信息页面 -->
+        <div id="statisticsPage" class="page-content" style="display: none;">
+            <div class="page-header">
+                <h1><i class="fas fa-chart-bar"></i> 统计信息</h1>
+            </div>
+            <div class="data-table-wrapper">
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">厂家</th>
+                            <th style="width: 10%;">订单总数</th>
+                            <th style="width: 10%;">商品总数</th>
+                            <th style="width: 12%;">订单总内部价格</th>
+                            <th style="width: 12%;">订单总含税价格</th>
+                            <th style="width: 12%;">总服务价格</th>
+                            <th style="width: 12%;">总税额</th>
+                            <th style="width: 15%;">总结余</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statisticsTableBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 40px;">
+                                <i class="fas fa-spinner fa-spin"></i> 加载中...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 系统设置页面 -->
+        <div id="settingsPage" class="page-content" style="display: none;">
+            <div class="page-header">
+                <h1><i class="fas fa-cog"></i> 系统设置</h1>
+            </div>
+            <div class="card">
+                <h2><i class="fas fa-key"></i> 修改密码</h2>
+                <form id="changePasswordForm">
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-lock"></i>
+                            新密码
+                        </label>
+                        <input type="text" name="password" required autocomplete="new-password" class="password-input">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-lock"></i>
+                            确认密码
+                        </label>
+                        <input type="text" name="confirmPassword" required autocomplete="new-password" class="password-input">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> 保存
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card" id="usersManagementCard" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h2 style="margin: 0;"><i class="fas fa-users"></i> 用户管理</h2>
+                    <button class="btn btn-primary" onclick="openUserModal()">
+                        <i class="fas fa-plus"></i> 增加用户
+                    </button>
+                </div>
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 12%;">操作</th>
+                                <th style="width: 8%;">ID</th>
+                                <th style="width: 25%;">用户名</th>
+                                <th style="width: 15%;">用户类型</th>
+                                <th style="width: 40%;">创建时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 40px;">
+                                    <i class="fas fa-spinner fa-spin"></i> 加载中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框将在这里动态创建 -->
+    <div id="modalContainer"></div>
+
+    <!-- 消息提示 -->
+    <div id="message" class="message hidden"></div>
+
+    <script src="/frontend/js/utils.js"></script>
+    <script src="/frontend/js/auth.js"></script>
+    <script src="/frontend/js/products.js"></script>
+    <script src="/frontend/js/orders.js"></script>
+    <script src="/frontend/js/services.js"></script>
+    <script src="/frontend/js/statistics.js"></script>
+    <script src="/frontend/js/cart.js"></script>
+    <script src="/frontend/js/settings.js"></script>
+    <script src="/frontend/js/main.js"></script>
+</body>
+</html>
+
