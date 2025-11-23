@@ -86,9 +86,12 @@
                         <label>最高价格</label>
                         <input type="text" id="filterMaxPrice" placeholder="最高价格">
                     </div>
-                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end;">
+                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end; gap: 10px;">
                         <button class="btn btn-primary" onclick="loadProducts()">
                             <i class="fas fa-search"></i> 搜索
+                        </button>
+                        <button class="btn btn-secondary" onclick="resetProductFilters()">
+                            <i class="fas fa-redo"></i> 重置
                         </button>
                     </div>
                 </div>
@@ -97,13 +100,14 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th style="width: 12%;">操作</th>
-                            <th style="width: 20%;">商品名</th>
-                            <th style="width: 12%;">型号</th>
-                            <th style="width: 18%;">规格</th>
-                            <th id="internalPriceHeader" style="display: none; width: 10%;">内部价格</th>
-                            <th style="width: 10%;">含税价格</th>
-                            <th style="width: 18%;">厂家</th>
+                            <th style="width: 10%;">操作</th>
+                            <th style="width: 18%;">商品名</th>
+                            <th style="width: 10%;">品牌</th>
+                            <th style="width: 10%;">型号</th>
+                            <th style="width: 15%;">规格</th>
+                            <th id="internalPriceHeader" style="display: none; width: 9%;">内部价格</th>
+                            <th style="width: 9%;">含税价格</th>
+                            <th style="width: 19%;">厂家</th>
                         </tr>
                     </thead>
                     <tbody id="productsTableBody">
@@ -145,9 +149,12 @@
                             <option value="无效">无效</option>
                         </select>
                     </div>
-                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end;">
+                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end; gap: 10px;">
                         <button class="btn btn-primary" onclick="loadOrders()">
                             <i class="fas fa-search"></i> 搜索
+                        </button>
+                        <button class="btn btn-secondary" onclick="resetOrderFilters()">
+                            <i class="fas fa-redo"></i> 重置
                         </button>
                     </div>
                 </div>
@@ -208,9 +215,12 @@
                             <option value="无效">无效</option>
                         </select>
                     </div>
-                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end;">
+                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end; gap: 10px;">
                         <button class="btn btn-primary" onclick="loadServices()">
                             <i class="fas fa-search"></i> 搜索
+                        </button>
+                        <button class="btn btn-secondary" onclick="resetServiceFilters()">
+                            <i class="fas fa-redo"></i> 重置
                         </button>
                     </div>
                 </div>

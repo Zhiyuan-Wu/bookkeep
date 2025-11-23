@@ -117,7 +117,7 @@ async function viewOrderDetail(orderId) {
         const order = await apiRequest(`/orders/${orderId}`);
         
         let itemsHtml = '<table class="data-table"><thead><tr>';
-        itemsHtml += '<th>商品名</th><th>型号</th><th>规格</th>';
+        itemsHtml += '<th>商品名</th><th>品牌</th><th>型号</th><th>规格</th>';
         if (currentUser.user_type !== '厂家') {
             itemsHtml += '<th>内部价格</th>';
         }
@@ -126,6 +126,7 @@ async function viewOrderDetail(orderId) {
         order.items.forEach(item => {
             itemsHtml += '<tr>';
             itemsHtml += `<td>${item.name}</td>`;
+            itemsHtml += `<td>${item.brand || '-'}</td>`;
             itemsHtml += `<td>${item.model || '-'}</td>`;
             itemsHtml += `<td>${item.specification || '-'}</td>`;
             if (currentUser.user_type !== '厂家') {
@@ -245,5 +246,31 @@ async function exportOrder(orderId) {
     } catch (error) {
         showMessage('导出订单失败: ' + error.message, 'error');
     }
+}
+
+// 加载厂家下拉框（订单页面）
+async function loadOrderSuppliers() {
+    try {
+        const suppliers = await apiRequest('/suppliers/');
+        const select = document.getElementById('filterOrderSupplier');
+        // 保留"全部"选项
+        select.innerHTML = '<option value="">全部</option>';
+        suppliers.forEach(supplier => {
+            const option = document.createElement('option');
+            option.value = supplier.id;
+            option.textContent = supplier.name;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('加载厂家列表失败:', error);
+    }
+}
+
+// 重置订单筛选条件
+function resetOrderFilters() {
+    document.getElementById('filterOrderSupplier').value = '';
+    document.getElementById('filterOrderContent').value = '';
+    document.getElementById('filterOrderStatus').value = '';
+    loadOrders(1);
 }
 

@@ -48,6 +48,7 @@ class Product(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(200), nullable=False, index=True)
+    brand = Column(String(100), nullable=True, index=True)  # 品牌（可选）
     model = Column(String(100), index=True)  # 型号
     specification = Column(String(500))  # 规格
     internal_price = Column(Float, nullable=False)  # 内部价格

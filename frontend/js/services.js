@@ -216,7 +216,7 @@ async function openServiceModal(serviceId = null) {
             return;
         }
         try {
-            const supplierResponse = await apiRequest(`/api/suppliers/`);
+            const supplierResponse = await apiRequest(`/suppliers/`);
             const supplier = supplierResponse.find(s => s.id === currentUser.supplier_id);
             if (supplier) {
                 suppliers = [supplier];
@@ -229,7 +229,7 @@ async function openServiceModal(serviceId = null) {
     } else {
         // 加载厂家列表
         try {
-            const suppliersResponse = await apiRequest('/api/suppliers/');
+            const suppliersResponse = await apiRequest('/suppliers/');
             suppliers = suppliersResponse;
         } catch (error) {
             if (service && service.supplier_id) {
@@ -302,6 +302,32 @@ async function openServiceModal(serviceId = null) {
             await saveService(serviceId);
         });
     }
+}
+
+// 加载厂家下拉框（服务记录页面）
+async function loadServiceSuppliers() {
+    try {
+        const suppliers = await apiRequest('/suppliers/');
+        const select = document.getElementById('filterServiceSupplier');
+        // 保留"全部"选项
+        select.innerHTML = '<option value="">全部</option>';
+        suppliers.forEach(supplier => {
+            const option = document.createElement('option');
+            option.value = supplier.id;
+            option.textContent = supplier.name;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('加载厂家列表失败:', error);
+    }
+}
+
+// 重置服务记录筛选条件
+function resetServiceFilters() {
+    document.getElementById('filterServiceSupplier').value = '';
+    document.getElementById('filterServiceContent').value = '';
+    document.getElementById('filterServiceStatus').value = '';
+    loadServices(1);
 }
 
 // 保存服务记录

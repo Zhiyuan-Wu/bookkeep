@@ -69,13 +69,26 @@ window.showMessage = function showMessage(message, type = 'success', duration = 
 
 /**
  * 格式化日期
- * @param {string|Date} date - 日期
- * @returns {string} 格式化后的日期字符串
+ * @param {string|Date} date - 日期（UTC时间字符串或Date对象）
+ * @returns {string} 格式化后的日期字符串（本地时间）
  */
 window.formatDate = function formatDate(date) {
     if (!date) return '';
     const d = new Date(date);
-    return d.toLocaleString('zh-CN');
+    // 确保正确转换为本地时间
+    if (isNaN(d.getTime())) {
+        return '';
+    }
+    // 使用toLocaleString转换为本地时间
+    return d.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
 }
 
 /**

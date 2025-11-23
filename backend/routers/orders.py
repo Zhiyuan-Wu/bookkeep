@@ -540,7 +540,7 @@ async def export_order_excel(
         header_alignment = Alignment(horizontal="center", vertical="center")
         
         # 写入表头
-        headers = ["商品名", "型号", "规格"]
+        headers = ["商品名", "品牌", "型号", "规格"]
         if can_view_internal:
             headers.append("内部价格")
         headers.extend(["含税价格", "数量", "小计"])
@@ -555,6 +555,8 @@ async def export_order_excel(
         for row, item in enumerate(items, 2):
             col = 1
             ws.cell(row=row, column=col, value=item.get("name", ""))
+            col += 1
+            ws.cell(row=row, column=col, value=item.get("brand", ""))
             col += 1
             ws.cell(row=row, column=col, value=item.get("model", ""))
             col += 1
@@ -582,24 +584,25 @@ async def export_order_excel(
         
         ws.cell(row=total_row, column=1, value="总计").font = Font(bold=True)
         if can_view_internal:
-            ws.cell(row=total_row, column=4, value=totals["total_internal_price"]).font = Font(bold=True)
-            ws.cell(row=total_row, column=7, value=totals["total_tax_included_price"]).font = Font(bold=True)
+            ws.cell(row=total_row, column=5, value=totals["total_internal_price"]).font = Font(bold=True)
+            ws.cell(row=total_row, column=8, value=totals["total_tax_included_price"]).font = Font(bold=True)
         else:
-            ws.cell(row=total_row, column=6, value=totals["total_tax_included_price"]).font = Font(bold=True)
+            ws.cell(row=total_row, column=7, value=totals["total_tax_included_price"]).font = Font(bold=True)
         
         # 调整列宽
         ws.column_dimensions['A'].width = 20
-        ws.column_dimensions['B'].width = 15
-        ws.column_dimensions['C'].width = 20
+        ws.column_dimensions['B'].width = 12
+        ws.column_dimensions['C'].width = 15
+        ws.column_dimensions['D'].width = 20
         if can_view_internal:
-            ws.column_dimensions['D'].width = 12
+            ws.column_dimensions['E'].width = 12
+            ws.column_dimensions['F'].width = 12
+            ws.column_dimensions['G'].width = 8
+            ws.column_dimensions['H'].width = 12
+        else:
             ws.column_dimensions['E'].width = 12
             ws.column_dimensions['F'].width = 8
             ws.column_dimensions['G'].width = 12
-        else:
-            ws.column_dimensions['D'].width = 12
-            ws.column_dimensions['E'].width = 8
-            ws.column_dimensions['F'].width = 12
         
         # 保存到内存
         output = io.BytesIO()

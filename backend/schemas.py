@@ -63,6 +63,7 @@ class SupplierResponse(BaseModel):
 class ProductCreate(BaseModel):
     """创建商品请求模型"""
     name: str = Field(..., min_length=1, max_length=200, description="商品名")
+    brand: Optional[str] = Field(None, max_length=100, description="品牌")
     model: Optional[str] = Field(None, max_length=100, description="型号")
     specification: Optional[str] = Field(None, max_length=500, description="规格")
     internal_price: Optional[float] = Field(None, ge=0, description="内部价格")
@@ -73,6 +74,7 @@ class ProductCreate(BaseModel):
 class ProductUpdate(BaseModel):
     """更新商品请求模型"""
     name: Optional[str] = Field(None, min_length=1, max_length=200, description="商品名")
+    brand: Optional[str] = Field(None, max_length=100, description="品牌")
     model: Optional[str] = Field(None, max_length=100, description="型号")
     specification: Optional[str] = Field(None, max_length=500, description="规格")
     internal_price: Optional[float] = Field(None, ge=0, description="内部价格")
@@ -83,6 +85,7 @@ class ProductResponse(BaseModel):
     """商品响应模型"""
     id: int
     name: str
+    brand: Optional[str]
     model: Optional[str]
     specification: Optional[str]
     internal_price: Optional[float]  # 厂家用户看不到此字段
@@ -119,6 +122,7 @@ class OrderItem(BaseModel):
     """订单项模型"""
     product_id: int
     name: str
+    brand: Optional[str] = None
     model: Optional[str] = None
     specification: Optional[str] = None
     internal_price: Optional[float] = None

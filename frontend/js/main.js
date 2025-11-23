@@ -98,9 +98,15 @@ function switchPage(page) {
             loadProducts();
             break;
         case 'orders':
+            if (typeof loadOrderSuppliers === 'function') {
+                loadOrderSuppliers();
+            }
             loadOrders();
             break;
         case 'services':
+            if (typeof loadServiceSuppliers === 'function') {
+                loadServiceSuppliers();
+            }
             loadServices();
             break;
         case 'statistics':

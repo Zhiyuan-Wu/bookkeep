@@ -25,6 +25,7 @@ async function addProductToCart(productId) {
             cart[supplierId].items.push({
                 product_id: product.id,
                 name: product.name,
+                brand: product.brand || '',
                 model: product.model || '',
                 specification: product.specification || '',
                 internal_price: product.internal_price,
@@ -102,14 +103,15 @@ function renderCartContent() {
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th style="width: 8%;">操作</th>
-                            <th style="width: 8%;">静音</th>
-                            <th style="width: 20%;">商品名</th>
-                            <th style="width: 12%;">型号</th>
-                            <th style="width: 18%;">规格</th>
-                            ${currentUser.user_type !== '厂家' ? '<th style="width: 12%;">内部价格</th>' : ''}
-                            <th style="width: 12%;">含税价格</th>
-                            <th style="width: 10%;">数量</th>
+                            <th style="width: 7%;">操作</th>
+                            <th style="width: 7%;">静音</th>
+                            <th style="width: 18%;">商品名</th>
+                            <th style="width: 10%;">品牌</th>
+                            <th style="width: 10%;">型号</th>
+                            <th style="width: 15%;">规格</th>
+                            ${currentUser.user_type !== '厂家' ? '<th style="width: 11%;">内部价格</th>' : ''}
+                            <th style="width: 11%;">含税价格</th>
+                            <th style="width: 11%;">数量</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -130,6 +132,7 @@ function renderCartContent() {
                         </button>
                     </td>
                     <td>${item.name}</td>
+                    <td>${item.brand || '-'}</td>
                     <td>${item.model || '-'}</td>
                     <td>${item.specification || '-'}</td>
                     ${currentUser.user_type !== '厂家' ? `<td>${item.internal_price !== null && item.internal_price !== undefined ? formatCurrency(item.internal_price) : '-'}</td>` : ''}
@@ -281,6 +284,7 @@ window.saveOrder = async function saveOrder() {
             const items = group.items.map(item => ({
                 product_id: item.product_id,
                 name: item.name,
+                brand: item.brand,
                 model: item.model,
                 specification: item.specification,
                 internal_price: item.internal_price,

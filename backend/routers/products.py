@@ -38,6 +38,7 @@ def get_product_response(product: Product, can_view_internal: bool) -> ProductRe
     return ProductResponse(
         id=product.id,
         name=product.name,
+        brand=product.brand,
         model=product.model,
         specification=product.specification,
         internal_price=product.internal_price if can_view_internal else None,
@@ -240,6 +241,7 @@ async def create_product(
         # 创建商品
         new_product = Product(
             name=product_data.name,
+            brand=product_data.brand,
             model=product_data.model,
             specification=product_data.specification,
             internal_price=internal_price,
@@ -339,6 +341,8 @@ async def update_product(
     # 更新字段
     if product_data.name is not None:
         product.name = product_data.name
+    if product_data.brand is not None:
+        product.brand = product_data.brand
     if product_data.model is not None:
         product.model = product_data.model
     if product_data.specification is not None:

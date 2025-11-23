@@ -47,7 +47,8 @@ function renderProductsTable(products) {
     tbody.innerHTML = '';
     
     if (products.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">暂无数据</td></tr>';
+        const colCount = currentUser.user_type !== '厂家' ? 8 : 7;
+        tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; padding: 40px;">暂无数据</td></tr>`;
         return;
     }
     
@@ -77,6 +78,7 @@ function renderProductsTable(products) {
         row.innerHTML = `
             <td>${actions}</td>
             <td>${product.name}</td>
+            <td>${product.brand || '-'}</td>
             <td>${product.model || '-'}</td>
             <td>${product.specification || '-'}</td>
             ${currentUser.user_type !== '厂家' ? `<td>${internalPrice}</td>` : ''}
@@ -121,7 +123,7 @@ async function openProductModal(productId = null) {
     
     // 加载厂家列表（用于下拉选择）
     try {
-        const suppliersResponse = await apiRequest('/api/suppliers/');
+        const suppliersResponse = await apiRequest('/suppliers/');
         suppliers = suppliersResponse;
     } catch (error) {
         // 如果获取厂家列表失败，尝试从商品数据中获取
@@ -132,6 +134,7 @@ async function openProductModal(productId = null) {
     
     // 构建表单HTML
     const canViewInternal = currentUser.user_type !== '厂家';
+    const canEditInternal = currentUser.user_type === '管理员';  // 只有管理员可以修改内部价格
     const isSupplier = currentUser.user_type === '厂家';
     
     let formHtml = `
@@ -139,6 +142,10 @@ async function openProductModal(productId = null) {
             <div class="form-group">
                 <label><i class="fas fa-tag"></i> 商品名 *</label>
                 <input type="text" name="name" value="${product ? product.name : ''}" required maxlength="200">
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-certificate"></i> 品牌</label>
+                <input type="text" name="brand" value="${product ? (product.brand || '') : ''}" maxlength="100">
             </div>
             <div class="form-group">
                 <label><i class="fas fa-cog"></i> 型号</label>
@@ -180,13 +187,28 @@ async function openProductModal(productId = null) {
     }
     
     if (canViewInternal) {
-        formHtml += `
-            <div class="form-group">
-                <label><i class="fas fa-dollar-sign"></i> 内部价格 *</label>
-                <input type="text" name="internal_price" value="${product ? (product.internal_price || '') : ''}" 
-                       placeholder="请输入内部价格" required>
-            </div>
-        `;
+        // 只有管理员可以编辑内部价格，普通用户只能查看
+        if (canEditInternal) {
+            formHtml += `
+                <div class="form-group">
+                    <label><i class="fas fa-dollar-sign"></i> 内部价格 *</label>
+                    <input type="text" name="internal_price" value="${product ? (product.internal_price || '') : ''}" 
+                           placeholder="请输入内部价格" required>
+                </div>
+            `;
+        } 
+        // 暂时不对普通用户显示
+        // else {
+        //     // 普通用户只能查看，不能编辑
+        //     formHtml += `
+        //         <div class="form-group">
+        //             <label><i class="fas fa-dollar-sign"></i> 内部价格（联系管理员修改）</label>
+        //             <input type="text" value="${product ? (product.internal_price || '') : ''}" 
+        //                    disabled style="background: var(--color-surface-muted);">
+        //             <input type="hidden" name="internal_price" value="${product ? (product.internal_price || '') : ''}">
+        //         </div>
+        //     `;
+        // }
     }
     
     formHtml += `
@@ -215,7 +237,7 @@ async function openProductModal(productId = null) {
     });
 }
 
-// 保存商品
+    // 保存商品
 async function saveProduct(productId) {
     const form = document.getElementById('productForm');
     const formData = getFormData(form);
@@ -229,6 +251,7 @@ async function saveProduct(productId) {
     
     const data = {
         name: formData.name,
+        brand: formData.brand || null,
         model: formData.model || null,
         specification: formData.specification || null,
         tax_included_price: taxIncludedPrice,
@@ -240,14 +263,22 @@ async function saveProduct(productId) {
         if (!productId) {
             data.internal_price = data.tax_included_price;
         }
-    } else {
-        // 验证内部价格输入
+    } else if (currentUser.user_type === '管理员') {
+        // 只有管理员可以设置/修改内部价格
         const internalPrice = parseFloat(formData.internal_price);
         if (isNaN(internalPrice) || internalPrice < 0) {
             showMessage('内部价格必须是有效的正数', 'error');
             return;
         }
         data.internal_price = internalPrice;
+    } else {
+        // 普通用户编辑时，不修改内部价格（保持原值）
+        if (productId && formData.internal_price) {
+            const internalPrice = parseFloat(formData.internal_price);
+            if (!isNaN(internalPrice) && internalPrice >= 0) {
+                data.internal_price = internalPrice;
+            }
+        }
     }
     
     try {
@@ -300,5 +331,14 @@ function addToCart(productId) {
     if (typeof addProductToCart === 'function') {
         addProductToCart(productId);
     }
+}
+
+// 重置商品筛选条件
+function resetProductFilters() {
+    document.getElementById('filterProductName').value = '';
+    document.getElementById('filterProductModel').value = '';
+    document.getElementById('filterMinPrice').value = '';
+    document.getElementById('filterMaxPrice').value = '';
+    loadProducts(1);
 }
 
