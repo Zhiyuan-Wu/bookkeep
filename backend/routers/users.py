@@ -5,7 +5,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
 from backend.database import get_db
-from backend.models import User, Product
+from backend.models import User, Product, Supplier
 from backend.schemas import (
     UserCreate, UserUpdate, UserResponse, LoginRequest, LoginResponse
 )
@@ -216,12 +216,22 @@ async def create_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"无效的用户类型，必须是: {', '.join(valid_types)}"
         )
+
+    # 厂家用户自动创建厂家
+    if user_data.user_type == USER_TYPE_SUPPLIER:
+        supplier = Supplier(name=user_data.username)
+        db.add(supplier)
+        db.flush()
+        supplier_id = supplier.id
+    else:
+        supplier_id = None
     
     # 创建用户
     new_user = User(
         username=user_data.username,
         password_hash=hash_password(user_data.password),
-        user_type=user_data.user_type
+        user_type=user_data.user_type,
+        supplier_id=supplier_id
     )
     db.add(new_user)
     db.commit()

@@ -163,7 +163,7 @@ async function openProductModal(productId = null) {
             formHtml += `
                 <div class="form-group">
                     <label><i class="fas fa-building"></i> 厂家</label>
-                    <input type="hidden" name="supplier_id" value="${currentUser.id}">
+                    <input type="hidden" name="supplier_id" value="${currentUser.supplier_id}">
                     <input type="text" value="${currentUser.username}" disabled style="background: var(--color-surface-muted);">
                 </div>
             `;
