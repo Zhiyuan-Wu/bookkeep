@@ -123,7 +123,7 @@ async function openProductModal(productId = null) {
     
     // 加载厂家列表（用于下拉选择）
     try {
-        const suppliersResponse = await apiRequest('/suppliers/');
+        const suppliersResponse = await getSuppliers();
         suppliers = suppliersResponse;
     } catch (error) {
         // 如果获取厂家列表失败，尝试从商品数据中获取

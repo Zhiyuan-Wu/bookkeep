@@ -251,7 +251,7 @@ async function exportOrder(orderId) {
 // 加载厂家下拉框（订单页面）
 async function loadOrderSuppliers() {
     try {
-        const suppliers = await apiRequest('/suppliers/');
+        const suppliers = await getSuppliers();
         const select = document.getElementById('filterOrderSupplier');
         // 保留"全部"选项
         select.innerHTML = '<option value="">全部</option>';

@@ -216,7 +216,7 @@ async function openServiceModal(serviceId = null) {
             return;
         }
         try {
-            const supplierResponse = await apiRequest(`/suppliers/`);
+            const supplierResponse = await getSuppliers();
             const supplier = supplierResponse.find(s => s.id === currentUser.supplier_id);
             if (supplier) {
                 suppliers = [supplier];
@@ -229,7 +229,7 @@ async function openServiceModal(serviceId = null) {
     } else {
         // 加载厂家列表
         try {
-            const suppliersResponse = await apiRequest('/suppliers/');
+            const suppliersResponse = await getSuppliers();
             suppliers = suppliersResponse;
         } catch (error) {
             if (service && service.supplier_id) {
@@ -307,7 +307,7 @@ async function openServiceModal(serviceId = null) {
 // 加载厂家下拉框（服务记录页面）
 async function loadServiceSuppliers() {
     try {
-        const suppliers = await apiRequest('/suppliers/');
+        const suppliers = await getSuppliers();
         const select = document.getElementById('filterServiceSupplier');
         // 保留"全部"选项
         select.innerHTML = '<option value="">全部</option>';

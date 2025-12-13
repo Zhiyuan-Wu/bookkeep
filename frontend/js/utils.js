@@ -4,6 +4,15 @@
 
 const API_BASE = '/api';
 
+// 全局缓存
+const cache = {
+    suppliers: null,
+    suppliersTimestamp: null
+};
+
+// 缓存过期时间（毫秒）
+const CACHE_EXPIRY = 1 * 60 * 1000; // 1分钟
+
 /**
  * 发送API请求
  * @param {string} url - API路径
@@ -135,7 +144,8 @@ window.openModal = function openModal(modalId) {
 window.closeModal = function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
-        modal.style.display = 'none';
+        // 从DOM中移除模态框，避免重复元素和事件监听器
+        modal.remove();
     }
 }
 
@@ -206,5 +216,43 @@ window.exportToExcel = function exportToExcel(data, columns, filename) {
     link.href = URL.createObjectURL(blob);
     link.download = filename || 'export.csv';
     link.click();
+}
+
+/**
+ * 获取厂家列表（带缓存）
+ * @returns {Promise<Array>} 厂家列表
+ */
+window.getSuppliers = async function getSuppliers() {
+    // 检查缓存是否存在且未过期
+    const now = Date.now();
+    if (cache.suppliers && cache.suppliersTimestamp && (now - cache.suppliersTimestamp < CACHE_EXPIRY)) {
+        return cache.suppliers;
+    }
+    
+    // 缓存不存在或已过期，从API获取
+    try {
+        const suppliers = await apiRequest('/suppliers/');
+        // 更新缓存
+        cache.suppliers = suppliers;
+        cache.suppliersTimestamp = now;
+        return suppliers;
+    } catch (error) {
+        console.error('获取厂家列表失败:', error);
+        // 如果API请求失败，但缓存存在，返回缓存数据
+        if (cache.suppliers) {
+            console.log('使用缓存的厂家列表');
+            return cache.suppliers;
+        }
+        // 如果没有缓存，抛出错误
+        throw error;
+    }
+}
+
+/**
+ * 刷新厂家列表缓存
+ */
+window.refreshSuppliersCache = function refreshSuppliersCache() {
+    cache.suppliers = null;
+    cache.suppliersTimestamp = null;
 }
 
