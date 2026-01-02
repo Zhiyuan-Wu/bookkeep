@@ -2,11 +2,12 @@
 邮件发送工具
 """
 
+import asyncio
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
-from typing import Optional, List
+from typing import Optional
 from backend.config import (
     SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD,
     SMTP_FROM_EMAIL, SMTP_FROM_NAME, SMTP_USE_TLS
@@ -16,14 +17,14 @@ from backend.logger import get_logger
 logger = get_logger(__name__)
 
 
-def send_email(
+def _send_email_sync(
     to_email: str,
     subject: str,
     html_content: str,
     text_content: Optional[str] = None
 ) -> bool:
     """
-    发送邮件
+    同步发送邮件（内部函数）
     
     Args:
         to_email: 收件人邮箱
@@ -33,13 +34,6 @@ def send_email(
         
     Returns:
         bool: 是否发送成功
-        
-    使用样例:
-        send_email(
-            "user@example.com",
-            "订单通知",
-            "<h1>您的订单已确认</h1>"
-        )
     """
     if not SMTP_HOST or not SMTP_USER or not SMTP_PASSWORD:
         logger.warning("邮件服务器未配置，跳过邮件发送")
@@ -62,11 +56,18 @@ def send_email(
         msg.attach(html_part)
         
         # 连接SMTP服务器并发送
-        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30)
-        if SMTP_USE_TLS:
-            server.starttls()
+        if SMTP_PORT == 465:
+            # 使用SSL连接
+            server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30)
+        else:
+            # 使用普通SMTP连接
+            server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30)
+            if SMTP_USE_TLS:
+                server.starttls()
+        
         server.login(SMTP_USER, SMTP_PASSWORD)
         server.send_message(msg)
+        server.quit()
         
         logger.info(f"邮件发送成功: {to_email}, 主题: {subject}")
         return True
@@ -78,7 +79,25 @@ def send_email(
         return True
 
 
-def send_order_notification(
+async def send_email(
+    to_email: str,
+    subject: str,
+    html_content: str,
+    text_content: Optional[str] = None
+) -> bool:
+    """
+    发送邮件（异步）
+    """
+    asyncio.create_task(asyncio.to_thread(
+        _send_email_sync,
+        to_email,
+        subject,
+        html_content,
+        text_content
+    ))
+    return True
+
+async def send_order_notification(
     to_email: str,
     to_name: str,
     order_id: int,
@@ -153,10 +172,10 @@ def send_order_notification(
 报价及记账系统
     """
     
-    return send_email(to_email, subject, html_content, text_content)
+    return await send_email(to_email, subject, html_content, text_content)
 
 
-def send_service_notification(
+async def send_service_notification(
     to_email: str,
     to_name: str,
     service_id: int,
@@ -235,5 +254,4 @@ def send_service_notification(
 报价及记账系统
     """
     
-    return send_email(to_email, subject, html_content, text_content)
-
+    return await send_email(to_email, subject, html_content, text_content)

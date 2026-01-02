@@ -574,7 +574,7 @@ async def update_service_status(
     if new_status == SERVICE_STATUS_SUBMITTED:
         # 发起服务记录：向服务接收用户发送通知
         if service.user and service.user.email:
-            send_service_notification(
+            await send_service_notification(
                 to_email=service.user.email,
                 to_name=service.user.username,
                 service_id=service.id,
@@ -586,7 +586,7 @@ async def update_service_status(
     elif new_status == SERVICE_STATUS_CONFIRMED:
         # 确认服务记录：向厂家用户发送通知
         if service.supplier and service.supplier.user and service.supplier.user.email:
-            send_service_notification(
+            await send_service_notification(
                 to_email=service.supplier.user.email,
                 to_name=service.supplier.user.username,
                 service_id=service.id,

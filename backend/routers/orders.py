@@ -485,7 +485,7 @@ async def update_order_status(
             items_summary = ", ".join([f"{item.get('name', '')} x{item.get('quantity', 1)}" for item in items[:3]])
             if len(items) > 3:
                 items_summary += f" 等{len(items)}项"
-            send_order_notification(
+            await send_order_notification(
                 to_email=order.supplier.user.email,
                 to_name=order.supplier.user.username,
                 order_id=order.id,
@@ -500,7 +500,7 @@ async def update_order_status(
             items_summary = ", ".join([f"{item.get('name', '')} x{item.get('quantity', 1)}" for item in items[:3]])
             if len(items) > 3:
                 items_summary += f" 等{len(items)}项"
-            send_order_notification(
+            await send_order_notification(
                 to_email=order.user.email,
                 to_name=order.user.username,
                 order_id=order.id,
