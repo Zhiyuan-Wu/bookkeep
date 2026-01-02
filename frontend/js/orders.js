@@ -75,9 +75,11 @@ function renderOrdersTable(orders) {
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     ` : ''}
-                    <button class="action-btn btn-danger" onclick="deleteOrder(${order.id})" title="删除">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    ${order.status !== '无效' ? `
+                        <button class="action-btn btn-danger" onclick="deleteOrder(${order.id})" title="删除">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    ` : ''}
                 `}
             </div>
         `;

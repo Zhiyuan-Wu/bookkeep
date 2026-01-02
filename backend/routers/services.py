@@ -616,7 +616,7 @@ async def delete_service(
     db: Session = Depends(get_db)
 ):
     """
-    删除服务记录
+    删除服务记录（普通用户、学生用户和管理员）
     暂存和发起状态的服务可以直接删除，确认状态的服务删除后将转移到无效状态
     
     Args:
@@ -641,19 +641,33 @@ async def delete_service(
         )
     
     # 权限控制
-    if current_user.user_type in [USER_TYPE_NORMAL, USER_TYPE_ADMIN]:
-        # 普通用户和管理员只能删除自己的服务记录
+    if current_user.user_type == USER_TYPE_NORMAL:
+        # 普通用户可以删除自己的服务记录以及其管理学生的服务记录
+        if service.user_id != current_user.id:
+            # 检查是否是管理的学生
+            student = db.query(User).filter(
+                User.id == service.user_id,
+                User.manager_id == current_user.id
+            ).first()
+            if not student:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="无权删除此服务记录"
+                )
+    elif current_user.user_type == USER_TYPE_STUDENT:
+        # 学生用户只能删除自己的服务记录
         if service.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="无权删除此服务记录"
             )
-    elif current_user.user_type == USER_TYPE_SUPPLIER:
-        if service.supplier_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="无权删除此服务记录"
-            )
+    
+    # 无效的服务记录不能删除
+    if service.status == SERVICE_STATUS_INVALID:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="服务记录已失效"
+        )
     
     # 确认状态的服务转移到无效状态，其他状态直接删除
     if service.status == SERVICE_STATUS_CONFIRMED:

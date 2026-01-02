@@ -59,9 +59,11 @@ function renderServicesTable(services) {
                         <i class="fas fa-check"></i>
                     </button>
                 ` : ''}
-                <button class="action-btn btn-danger" onclick="deleteService(${service.id})" title="删除">
-                    <i class="fas fa-trash"></i>
-                </button>
+                ${service.status !== '无效' ? `
+                    <button class="action-btn btn-danger" onclick="deleteService(${service.id})" title="删除">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                ` : ''}
             </div>
         `;
         
