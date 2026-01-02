@@ -57,17 +57,19 @@ function renderProductsTable(products) {
         
         const actions = `
             <div class="action-buttons">
-                ${(currentUser.user_type !== '厂家' && currentUser.user_type !== '管理员') ? `
+                ${currentUser.user_type !== '厂家' ? `
                     <button class="action-btn btn-success" onclick="addToCart(${product.id})" title="添加到购物车">
                         <i class="fas fa-cart-plus"></i>
                     </button>
                 ` : ''}
-                <button class="action-btn" onclick="editProduct(${product.id})" title="修改">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="action-btn btn-danger" onclick="deleteProduct(${product.id})" title="删除">
-                    <i class="fas fa-trash"></i>
-                </button>
+                ${(currentUser.user_type === '厂家' || currentUser.user_type === '管理员') ? `
+                    <button class="action-btn" onclick="editProduct(${product.id})" title="修改">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="action-btn btn-danger" onclick="deleteProduct(${product.id})" title="删除">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                ` : ''}
             </div>
         `;
         
@@ -264,13 +266,18 @@ async function saveProduct(productId) {
             data.internal_price = data.tax_included_price;
         }
     } else if (currentUser.user_type === '管理员') {
-        // 只有管理员可以设置/修改内部价格
-        const internalPrice = parseFloat(formData.internal_price);
-        if (isNaN(internalPrice) || internalPrice < 0) {
-            showMessage('内部价格必须是有效的正数', 'error');
-            return;
+        // 管理员可以设置内部价格，新建时可以为空（后端会自动设置为含税价格）
+        if (formData.internal_price) {
+            const internalPrice = parseFloat(formData.internal_price);
+            if (isNaN(internalPrice) || internalPrice < 0) {
+                showMessage('内部价格必须是有效的正数', 'error');
+                return;
+            }
+            data.internal_price = internalPrice;
+        } else if (!productId) {
+            // 新建商品时，如果内部价格为空，后端会自动设置为含税价格
+            data.internal_price = data.tax_included_price;
         }
-        data.internal_price = internalPrice;
     } else {
         // 普通用户编辑时，不修改内部价格（保持原值）
         if (productId && formData.internal_price) {

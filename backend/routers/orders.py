@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func
 from backend.database import get_db
-from backend.models import Order, Supplier, User
+from backend.models import Order, Supplier, User, Product
 from backend.schemas import (
     OrderCreate, OrderResponse, OrderDetailResponse, OrderListResponse, OrderFilter, OrderItem
 )
@@ -327,8 +327,26 @@ async def create_order(
             detail="厂家不存在"
         )
     
+    # 检查并补齐内部价格
+    items_dict = []
+    for item in order_data.items:
+        item_dict = item.model_dump()
+        # 如果内部价格为空，从数据库查询
+        if item_dict.get('internal_price') is None:
+            product = db.query(Product).filter(
+                Product.id == item_dict['product_id'],
+                Product.supplier_id == order_data.supplier_id
+            ).first()
+            if product:
+                item_dict['internal_price'] = product.internal_price
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"商品ID {item_dict['product_id']} 不存在"
+                )
+        items_dict.append(item_dict)
+    
     # 格式化订单内容
-    items_dict = [item.model_dump() for item in order_data.items]
     content = format_order_content(items_dict)
     
     # 创建订单

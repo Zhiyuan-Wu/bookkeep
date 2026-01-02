@@ -222,13 +222,11 @@ async def create_product(
             # 厂家用户创建商品时，内部价格默认为含税价格
             internal_price = product_data.tax_included_price
         else:
-            # 管理员需要提供内部价格
+            # 管理员可以不提供内部价格，如果不提供则默认为含税价格
             if product_data.internal_price is None:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="管理员创建商品时必须提供内部价格"
-                )
-            internal_price = product_data.internal_price
+                internal_price = product_data.tax_included_price
+            else:
+                internal_price = product_data.internal_price
         
         # 验证厂家是否存在
         supplier = db.query(Supplier).filter(Supplier.id == product_data.supplier_id).first()
