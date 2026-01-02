@@ -69,7 +69,7 @@ async def list_services(
         # 管理员可以看到所有服务记录
         pass
     elif current_user.user_type == USER_TYPE_NORMAL:
-        # 普通用户可以看到自己的服务记录以及其管理学生的服务记录
+        # 普通用户可以看到自己的服务记录以及其管理学生的服务记录，且不能看到暂存状态的服务记录
         from sqlalchemy import or_
         # 查询管理的学生用户ID列表
         managed_students = db.query(User.id).filter(User.manager_id == current_user.id).all()
@@ -84,9 +84,12 @@ async def list_services(
             )
         else:
             query = query.filter(ServiceRecord.user_id == current_user.id)
+
+        query = query.filter(ServiceRecord.status != SERVICE_STATUS_DRAFT)
     elif current_user.user_type == USER_TYPE_STUDENT:
         # 学生用户只能看到自己的服务记录
         query = query.filter(ServiceRecord.user_id == current_user.id)
+        query = query.filter(ServiceRecord.status != SERVICE_STATUS_DRAFT)
     elif current_user.user_type == USER_TYPE_SUPPLIER:
         # 厂家用户只能看到自己的服务记录
         if not current_user.supplier_id:
@@ -134,9 +137,12 @@ async def list_services(
     items = []
     for service in services:
         supplier_name = service.supplier.name if service.supplier else None
+        user = db.query(User).filter(User.id == service.user_id).first()
+        username = user.username if user else None
         items.append(ServiceRecordResponse(
             id=service.id,
             user_id=service.user_id,
+            username=username,
             supplier_id=service.supplier_id,
             supplier_name=supplier_name,
             content=service.content,
@@ -215,9 +221,14 @@ async def get_service_detail(
     if not service.supplier:
         service.supplier = db.query(Supplier).filter(Supplier.id == service.supplier_id).first()
     
+    # 加载用户信息
+    user = db.query(User).filter(User.id == service.user_id).first()
+    username = user.username if user else None
+    
     return ServiceRecordResponse(
         id=service.id,
         user_id=service.user_id,
+        username=username,
         supplier_id=service.supplier_id,
         supplier_name=service.supplier.name if service.supplier else None,
         content=service.content,
@@ -319,18 +330,6 @@ async def create_service(
     db.refresh(new_service)
     new_service.supplier = supplier
     
-    # 发送邮件通知（向服务接收用户）
-    if target_user.email:
-        send_service_notification(
-            to_email=target_user.email,
-            to_name=target_user.username,
-            service_id=new_service.id,
-            service_status=SERVICE_STATUS_DRAFT,
-            supplier_name=supplier.name,
-            service_content=new_service.content,
-            service_amount=new_service.amount
-        )
-    
     logger.info(
         f"厂家用户创建服务记录: 服务ID={new_service.id}, 厂家ID={supplier.id}, 关联用户={target_user.username}",
         extra={
@@ -345,6 +344,7 @@ async def create_service(
     return ServiceRecordResponse(
         id=new_service.id,
         user_id=new_service.user_id,
+        username=target_user.username,
         supplier_id=new_service.supplier_id,
         supplier_name=supplier.name,
         content=new_service.content,
@@ -422,9 +422,14 @@ async def update_service(
     if not service.supplier:
         service.supplier = db.query(Supplier).filter(Supplier.id == service.supplier_id).first()
     
+    # 加载用户信息
+    user = db.query(User).filter(User.id == service.user_id).first()
+    username = user.username if user else None
+    
     return ServiceRecordResponse(
         id=service.id,
         user_id=service.user_id,
+        username=username,
         supplier_id=service.supplier_id,
         supplier_name=service.supplier.name if service.supplier else None,
         content=service.content,

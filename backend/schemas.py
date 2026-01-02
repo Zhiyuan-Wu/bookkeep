@@ -163,6 +163,7 @@ class OrderResponse(BaseModel):
     """订单响应模型"""
     id: int
     user_id: int
+    username: Optional[str] = None
     supplier_id: int
     supplier_name: Optional[str] = None
     content: str  # JSON字符串
@@ -176,6 +177,7 @@ class OrderDetailResponse(BaseModel):
     """订单详情响应模型"""
     id: int
     user_id: int
+    username: Optional[str] = None
     supplier_id: int
     supplier_name: Optional[str] = None
     items: List[OrderItem]  # 解析后的订单内容
@@ -225,6 +227,7 @@ class ServiceRecordResponse(BaseModel):
     """服务记录响应模型"""
     id: int
     user_id: int
+    username: Optional[str] = None
     supplier_id: int
     supplier_name: Optional[str] = None
     content: str

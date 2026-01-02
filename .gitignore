@@ -29,6 +29,13 @@ wheels/
 *.sqlite3
 bookkeep.db
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+# 但保留示例文件
+!.env.example
+
 # Logs
 logs/
 *.log

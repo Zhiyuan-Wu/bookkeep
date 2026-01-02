@@ -85,6 +85,7 @@ function renderOrdersTable(orders) {
         row.innerHTML = `
             <td>${actions}</td>
             <td>#${order.id}</td>
+            <td>${order.username || '-'}</td>
             <td>${order.supplier_name || '-'}</td>
             <td>${contentSummary}</td>
             <td><span class="tag-item status-tag status-${getStatusClass(order.status)}">${order.status}</span></td>

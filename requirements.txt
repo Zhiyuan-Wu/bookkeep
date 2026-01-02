@@ -7,4 +7,5 @@ openpyxl
 pytest
 pytest-asyncio
 httpx
+python-dotenv
 

@@ -166,9 +166,12 @@ async def list_orders(
     items = []
     for order in orders:
         supplier_name = order.supplier.name if order.supplier else None
+        user = db.query(User).filter(User.id == order.user_id).first()
+        username = user.username if user else None
         items.append(OrderResponse(
             id=order.id,
             user_id=order.user_id,
+            username=username,
             supplier_id=order.supplier_id,
             supplier_name=supplier_name,
             content=order.content,
@@ -246,6 +249,10 @@ async def get_order_detail(
     if not order.supplier:
         order.supplier = db.query(Supplier).filter(Supplier.id == order.supplier_id).first()
     
+    # 加载用户信息
+    user = db.query(User).filter(User.id == order.user_id).first()
+    username = user.username if user else None
+    
     # 解析订单内容
     items = parse_order_content(order.content)
     can_view_internal = can_view_internal_price(current_user)
@@ -260,6 +267,7 @@ async def get_order_detail(
     return OrderDetailResponse(
         id=order.id,
         user_id=order.user_id,
+        username=username,
         supplier_id=order.supplier_id,
         supplier_name=order.supplier.name if order.supplier else None,
         items=[OrderItem(**item) if isinstance(item, dict) else item for item in items],

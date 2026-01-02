@@ -68,6 +68,7 @@ function renderServicesTable(services) {
         row.innerHTML = `
             <td>${actions}</td>
             <td>#${service.id}</td>
+            <td>${service.username || '-'}</td>
             <td>${service.supplier_name || '-'}</td>
             <td>${service.content.length > 50 ? service.content.substring(0, 50) + '...' : service.content}</td>
             <td>${formatCurrency(service.amount)}</td>
@@ -105,6 +106,7 @@ async function viewServiceDetail(serviceId) {
                 <h4><i class="fas fa-info-circle"></i> 服务详情</h4>
                 <div class="modal-richtext">
                     <p><strong>服务ID：</strong>${service.id}</p>
+                    <p><strong>用户：</strong>${service.username || '-'}</p>
                     <p><strong>厂家：</strong>${service.supplier_name || '-'}</p>
                     <p><strong>服务内容：</strong>${service.content}</p>
                     <p><strong>金额：</strong>${formatCurrency(service.amount)}</p>
