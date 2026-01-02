@@ -12,12 +12,21 @@ class UserCreate(BaseModel):
     """创建用户请求模型"""
     username: str = Field(..., min_length=1, max_length=50, description="用户名")
     password: str = Field(..., min_length=1, description="密码")
-    user_type: str = Field(..., description="用户类型: 管理员、普通用户、厂家")
+    user_type: str = Field(..., description="用户类型: 管理员、普通用户、厂家、学生用户")
+    manager_id: Optional[int] = Field(None, description="管理用户ID（仅学生用户需要）")
+    email: Optional[str] = Field(None, max_length=100, description="邮箱")
+    phone: Optional[str] = Field(None, max_length=20, description="手机号")
 
 
 class UserUpdate(BaseModel):
     """更新用户密码请求模型"""
     password: str = Field(..., min_length=1, description="新密码")
+
+
+class UserContactUpdate(BaseModel):
+    """更新用户联系方式请求模型"""
+    email: Optional[str] = Field(None, max_length=100, description="邮箱")
+    phone: Optional[str] = Field(None, max_length=20, description="手机号")
 
 
 class UserResponse(BaseModel):
@@ -26,6 +35,10 @@ class UserResponse(BaseModel):
     username: str
     user_type: str
     supplier_id: Optional[int] = None  # 厂家用户关联的supplier_id
+    manager_id: Optional[int] = None  # 学生用户关联的管理用户ID
+    manager_username: Optional[str] = None  # 管理用户名称（仅学生用户）
+    email: Optional[str] = None  # 邮箱
+    phone: Optional[str] = None  # 手机号
     created_at: datetime
     
     model_config = {"from_attributes": True}
@@ -42,6 +55,15 @@ class LoginResponse(BaseModel):
     success: bool
     message: str
     user: Optional[UserResponse] = None
+
+
+class RegisterRequest(BaseModel):
+    """注册请求模型（学生用户自助注册）"""
+    username: str = Field(..., min_length=1, max_length=50, description="用户名")
+    password: str = Field(..., min_length=1, description="密码")
+    manager_username: str = Field(..., description="管理用户名称（普通用户）")
+    email: Optional[str] = Field(None, max_length=100, description="邮箱")
+    phone: Optional[str] = Field(None, max_length=20, description="手机号")
 
 
 # 厂家相关

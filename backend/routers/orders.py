@@ -14,10 +14,11 @@ from backend.schemas import (
 from backend.auth import get_current_user, require_admin, can_view_internal_price
 from backend.utils import format_order_content, parse_order_content, calculate_order_totals, remove_internal_price_from_items
 from backend.config import (
-    USER_TYPE_ADMIN, USER_TYPE_NORMAL, USER_TYPE_SUPPLIER,
+    USER_TYPE_ADMIN, USER_TYPE_NORMAL, USER_TYPE_SUPPLIER, USER_TYPE_STUDENT,
     ORDER_STATUS_DRAFT, ORDER_STATUS_SUBMITTED, ORDER_STATUS_CONFIRMED, ORDER_STATUS_INVALID
 )
 from backend.logger import get_logger
+from backend.email_sender import send_order_notification
 from typing import Optional
 from datetime import datetime
 import json
@@ -75,7 +76,23 @@ async def list_orders(
         # 管理员可以看到所有订单
         pass
     elif current_user.user_type == USER_TYPE_NORMAL:
-        # 普通用户只能看到自己的订单
+        # 普通用户可以看到自己的订单以及其管理学生的订单
+        from sqlalchemy import or_
+        # 查询管理的学生用户ID列表
+        managed_students = db.query(User.id).filter(User.manager_id == current_user.id).all()
+        managed_student_ids = [s[0] for s in managed_students]
+        # 自己的订单 + 管理学生的订单
+        if managed_student_ids:
+            query = query.filter(
+                or_(
+                    Order.user_id == current_user.id,
+                    Order.user_id.in_(managed_student_ids)
+                )
+            )
+        else:
+            query = query.filter(Order.user_id == current_user.id)
+    elif current_user.user_type == USER_TYPE_STUDENT:
+        # 学生用户只能看到自己的订单
         query = query.filter(Order.user_id == current_user.id)
     elif current_user.user_type == USER_TYPE_SUPPLIER:
         # 厂家用户只能看到自己的订单，且看不到暂存状态的订单
@@ -199,6 +216,20 @@ async def get_order_detail(
     
     # 权限控制
     if current_user.user_type == USER_TYPE_NORMAL:
+        # 普通用户可以访问自己的订单以及其管理学生的订单
+        if order.user_id != current_user.id:
+            # 检查是否是管理的学生
+            student = db.query(User).filter(
+                User.id == order.user_id,
+                User.manager_id == current_user.id
+            ).first()
+            if not student:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="无权访问此订单"
+                )
+    elif current_user.user_type == USER_TYPE_STUDENT:
+        # 学生用户只能访问自己的订单
         if order.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -273,7 +304,7 @@ async def create_order(
             ]
         }
     """
-    # 只有普通用户和管理员可以创建订单
+    # 只有普通用户、学生用户和管理员可以创建订单
     if current_user.user_type == USER_TYPE_SUPPLIER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -366,29 +397,57 @@ async def update_order_status(
                 detail="无权操作此订单"
             )
     elif current_user.user_type == USER_TYPE_NORMAL:
-        # 普通用户只能发起自己的订单
+        # 普通用户可以操作自己的订单以及其管理学生的订单
+        # 检查是否有权限操作此订单
+        has_permission = (order.user_id == current_user.id)
+        if not has_permission:
+            # 检查是否是管理的学生
+            student = db.query(User).filter(
+                User.id == order.user_id,
+                User.manager_id == current_user.id
+            ).first()
+            has_permission = (student is not None)
+        
+        if not has_permission:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权操作此订单"
+            )
+        
         if new_status == ORDER_STATUS_SUBMITTED:
             if order.status != ORDER_STATUS_DRAFT:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="只能发起处于暂存状态的订单"
                 )
-            if order.user_id != current_user.id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="无权操作此订单"
-                )
         elif new_status == ORDER_STATUS_INVALID:
             # 普通用户可以删除订单（转为无效）
-            if order.user_id != current_user.id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="无权操作此订单"
-                )
+            pass
         else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="普通用户只能发起或删除订单"
+            )
+    elif current_user.user_type == USER_TYPE_STUDENT:
+        # 学生用户只能操作自己的订单
+        if order.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权操作此订单"
+            )
+        if new_status == ORDER_STATUS_SUBMITTED:
+            if order.status != ORDER_STATUS_DRAFT:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="只能发起处于暂存状态的订单"
+                )
+        elif new_status == ORDER_STATUS_INVALID:
+            # 学生用户可以删除订单（转为无效）
+            pass
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="学生用户只能发起或删除订单"
             )
     # 管理员可以执行任何状态转换
     
@@ -400,8 +459,47 @@ async def update_order_status(
             detail=f"无效的状态，必须是: {', '.join(valid_statuses)}"
         )
     
+    # 加载关联信息（用于邮件通知，在更新状态前加载）
+    if not order.supplier:
+        order.supplier = db.query(Supplier).filter(Supplier.id == order.supplier_id).first()
+    if not order.user:
+        order.user = db.query(User).filter(User.id == order.user_id).first()
+    
     order.status = new_status
     db.commit()
+    db.refresh(order)
+    
+    # 发送邮件通知
+    if new_status == ORDER_STATUS_SUBMITTED:
+        # 发起订单：向厂家用户发送通知
+        if order.supplier and order.supplier.user and order.supplier.user.email:
+            items = parse_order_content(order.content)
+            items_summary = ", ".join([f"{item.get('name', '')} x{item.get('quantity', 1)}" for item in items[:3]])
+            if len(items) > 3:
+                items_summary += f" 等{len(items)}项"
+            send_order_notification(
+                to_email=order.supplier.user.email,
+                to_name=order.supplier.user.username,
+                order_id=order.id,
+                order_status=ORDER_STATUS_SUBMITTED,
+                supplier_name=order.supplier.name,
+                order_summary=items_summary
+            )
+    elif new_status == ORDER_STATUS_CONFIRMED:
+        # 确认订单：向订单创建用户发送通知
+        if order.user and order.user.email:
+            items = parse_order_content(order.content)
+            items_summary = ", ".join([f"{item.get('name', '')} x{item.get('quantity', 1)}" for item in items[:3]])
+            if len(items) > 3:
+                items_summary += f" 等{len(items)}项"
+            send_order_notification(
+                to_email=order.user.email,
+                to_name=order.user.username,
+                order_id=order.id,
+                order_status=ORDER_STATUS_CONFIRMED,
+                supplier_name=order.supplier.name if order.supplier else None,
+                order_summary=items_summary
+            )
     
     logger.info(
         f"订单状态更新成功: 订单ID={order_id}, 新状态={new_status}, 用户={current_user.username}",
@@ -455,6 +553,20 @@ async def delete_order(
     
     # 权限控制
     if current_user.user_type == USER_TYPE_NORMAL:
+        # 普通用户可以删除自己的订单以及其管理学生的订单
+        if order.user_id != current_user.id:
+            # 检查是否是管理的学生
+            student = db.query(User).filter(
+                User.id == order.user_id,
+                User.manager_id == current_user.id
+            ).first()
+            if not student:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="无权删除此订单"
+                )
+    elif current_user.user_type == USER_TYPE_STUDENT:
+        # 学生用户只能删除自己的订单
         if order.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -505,6 +617,20 @@ async def export_order_excel(
         
         # 权限控制
         if current_user.user_type == USER_TYPE_NORMAL:
+            # 普通用户可以访问自己的订单以及其管理学生的订单
+            if order.user_id != current_user.id:
+                # 检查是否是管理的学生
+                student = db.query(User).filter(
+                    User.id == order.user_id,
+                    User.manager_id == current_user.id
+                ).first()
+                if not student:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="无权访问此订单"
+                    )
+        elif current_user.user_type == USER_TYPE_STUDENT:
+            # 学生用户只能访问自己的订单
             if order.user_id != current_user.id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,

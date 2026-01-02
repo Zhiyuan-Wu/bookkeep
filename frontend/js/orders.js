@@ -118,7 +118,7 @@ async function viewOrderDetail(orderId) {
         
         let itemsHtml = '<table class="data-table"><thead><tr>';
         itemsHtml += '<th>商品名</th><th>品牌</th><th>型号</th><th>规格</th>';
-        if (currentUser.user_type !== '厂家') {
+        if (currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') {
             itemsHtml += '<th>内部价格</th>';
         }
         itemsHtml += '<th>含税价格</th><th>数量</th></tr></thead><tbody>';
@@ -129,7 +129,7 @@ async function viewOrderDetail(orderId) {
             itemsHtml += `<td>${item.brand || '-'}</td>`;
             itemsHtml += `<td>${item.model || '-'}</td>`;
             itemsHtml += `<td>${item.specification || '-'}</td>`;
-            if (currentUser.user_type !== '厂家') {
+            if (currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') {
                 itemsHtml += `<td>${formatCurrency(item.internal_price)}</td>`;
             }
             itemsHtml += `<td>${formatCurrency(item.tax_included_price)}</td>`;
@@ -141,9 +141,7 @@ async function viewOrderDetail(orderId) {
         
         const totalsHtml = `
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--color-border);">
-                ${currentUser.user_type !== '厂家' ? `
-                    <p><strong>总内部价格：</strong>${formatCurrency(order.total_internal_price)}</p>
-                ` : ''}
+                ${(currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户' && order.total_internal_price !== null) ? `<p><strong>总内部价格：</strong>${formatCurrency(order.total_internal_price)}</p>` : ''}
                 <p><strong>总含税价格：</strong>${formatCurrency(order.total_tax_included_price)}</p>
             </div>
             <div class="form-actions" style="margin-top: 20px;">

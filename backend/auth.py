@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models import User
 from backend.utils import verify_password, hash_password
-from backend.config import USER_TYPE_ADMIN, USER_TYPE_NORMAL, USER_TYPE_SUPPLIER
+from backend.config import USER_TYPE_ADMIN, USER_TYPE_NORMAL, USER_TYPE_SUPPLIER, USER_TYPE_STUDENT
 import uuid
 from typing import Optional, Dict
 
@@ -205,6 +205,8 @@ def require_supplier(user: User = Depends(get_current_user)) -> User:
 def can_view_internal_price(user: User) -> bool:
     """
     判断用户是否可以查看内部价格
+    
+    学生用户不能查看内部价格，只有管理员和普通用户可以查看
     
     Args:
         user: 用户对象

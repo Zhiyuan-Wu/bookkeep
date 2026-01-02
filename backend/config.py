@@ -21,6 +21,10 @@ SESSION_MAX_AGE = 86400  # 24小时
 USER_TYPE_ADMIN = "管理员"
 USER_TYPE_NORMAL = "普通用户"
 USER_TYPE_SUPPLIER = "厂家"
+USER_TYPE_STUDENT = "学生用户"
+
+# 自助注册配置
+ALLOW_SELF_REGISTRATION = True
 
 # 订单状态
 ORDER_STATUS_DRAFT = "暂存"
@@ -41,3 +45,11 @@ TAX_RATE = 0.13  # 13%
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100
 
+# 邮件服务器配置
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.qq.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "86562713@qq.com")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM_EMAIL = SMTP_USER
+SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Order Notification")
+SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"

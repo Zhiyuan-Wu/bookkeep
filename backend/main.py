@@ -12,6 +12,12 @@ from backend.routers import users, products, orders, services, statistics, suppl
 from backend.logger import get_logger
 import os
 import traceback
+import sys
+from pathlib import Path
+
+# 添加项目根目录到路径
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from migrate_db import migrate_database
 
 logger = get_logger(__name__)
 
@@ -22,6 +28,9 @@ async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时
     try:
+        # 执行数据库迁移
+        migrate_database()
+        # 初始化数据库（创建表）
         init_db()
         logger.info("数据库初始化完成")
     except Exception as e:

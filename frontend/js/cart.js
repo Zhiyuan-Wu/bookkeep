@@ -104,12 +104,12 @@ function renderCartContent() {
                     <thead>
                         <tr>
                             <th style="width: 7%;">操作</th>
-                            <th style="width: 7%;">静音</th>
+                            <th style="width: 7%;">隐藏</th>
                             <th style="width: 18%;">商品名</th>
                             <th style="width: 10%;">品牌</th>
                             <th style="width: 10%;">型号</th>
                             <th style="width: 15%;">规格</th>
-                            ${currentUser.user_type !== '厂家' ? '<th style="width: 11%;">内部价格</th>' : ''}
+                            ${currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户' ? '<th style="width: 11%;">内部价格</th>' : ''}
                             <th style="width: 11%;">含税价格</th>
                             <th style="width: 11%;">数量</th>
                         </tr>
@@ -135,7 +135,7 @@ function renderCartContent() {
                     <td>${item.brand || '-'}</td>
                     <td>${item.model || '-'}</td>
                     <td>${item.specification || '-'}</td>
-                    ${currentUser.user_type !== '厂家' ? `<td>${item.internal_price !== null && item.internal_price !== undefined ? formatCurrency(item.internal_price) : '-'}</td>` : ''}
+                    ${(currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') ? `<td>${item.internal_price !== null && item.internal_price !== undefined ? formatCurrency(item.internal_price) : '-'}</td>` : ''}
                     <td>${formatCurrency(item.tax_included_price)}</td>
                     <td>
                         <input type="text" value="${item.quantity}" 
@@ -161,7 +161,7 @@ function renderCartContent() {
         cart[supplierId].items.forEach(item => {
             if (!item.muted) {
                 // 计算内部价格（非厂家用户且内部价格不为null/undefined）
-                if (currentUser.user_type !== '厂家' && item.internal_price !== null && item.internal_price !== undefined) {
+                if (currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户' && item.internal_price !== null && item.internal_price !== undefined) {
                     totalInternal += (item.internal_price || 0) * item.quantity;
                 }
                 // 计算含税价格
@@ -236,7 +236,7 @@ function updateCartTotals() {
         cart[supplierId].items.forEach(item => {
             if (!item.muted) {
                 // 计算内部价格（非厂家用户且内部价格不为null/undefined）
-                if (currentUser.user_type !== '厂家' && item.internal_price !== null && item.internal_price !== undefined) {
+                if (currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户' && item.internal_price !== null && item.internal_price !== undefined) {
                     totalInternal += (item.internal_price || 0) * item.quantity;
                 }
                 // 计算含税价格

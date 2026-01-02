@@ -11,32 +11,105 @@
 <body>
     <div class="container" style="max-width: 500px; margin-top: 10vh;">
         <div class="card">
-            <h2 style="text-align: center; border-bottom: none; margin-bottom: 30px;">
-                <i class="fas fa-sign-in-alt"></i>
-                登录
-            </h2>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label>
-                        <i class="fas fa-user"></i>
-                        用户名
-                    </label>
-                    <input type="text" id="username" name="username" required autocomplete="username">
-                </div>
-                <div class="form-group">
-                    <label>
-                        <i class="fas fa-lock"></i>
-                        密码
-                    </label>
-                    <input type="text" id="password" name="password" required autocomplete="current-password" class="password-input">
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary" style="width: 100%;">
-                        <i class="fas fa-sign-in-alt"></i>
-                        登录
-                    </button>
-                </div>
-            </form>
+            <!-- 选项卡 -->
+            <div style="display: flex; border-bottom: 2px solid #e0e0e0; margin-bottom: 20px;">
+                <button id="loginTab" class="tab-button active" style="flex: 1; padding: 15px; border: none; background: none; cursor: pointer; font-size: 16px; border-bottom: 3px solid #4472C4;">
+                    <i class="fas fa-sign-in-alt"></i> 登录
+                </button>
+                <button id="registerTab" class="tab-button" style="flex: 1; padding: 15px; border: none; background: none; cursor: pointer; font-size: 16px;">
+                    <i class="fas fa-user-plus"></i> 注册
+                </button>
+            </div>
+            
+            <!-- 登录表单 -->
+            <div id="loginFormContainer">
+                <h2 style="text-align: center; border-bottom: none; margin-bottom: 30px;">
+                    <i class="fas fa-sign-in-alt"></i>
+                    登录
+                </h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-user"></i>
+                            用户名
+                        </label>
+                        <input type="text" id="username" name="username" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-lock"></i>
+                            密码
+                        </label>
+                        <input type="text" id="password" name="password" required autocomplete="current-password" class="password-input">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-sign-in-alt"></i>
+                            登录
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 注册表单 -->
+            <div id="registerFormContainer" style="display: none;">
+                <h2 style="text-align: center; border-bottom: none; margin-bottom: 30px;">
+                    <i class="fas fa-user-plus"></i>
+                    用户注册
+                </h2>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-user"></i>
+                            用户名
+                        </label>
+                        <input type="text" id="registerUsername" name="username" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-lock"></i>
+                            密码
+                        </label>
+                        <input type="text" id="registerPassword" name="password" required autocomplete="new-password" class="password-input">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-lock"></i>
+                            确认密码
+                        </label>
+                        <input type="text" id="registerConfirmPassword" name="confirmPassword" required autocomplete="new-password" class="password-input">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-user-tie"></i>
+                            管理用户名称
+                        </label>
+                        <input type="text" id="managerUsername" name="managerUsername" required>
+
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-envelope"></i>
+                            邮箱（可选）
+                        </label>
+                        <input type="email" id="registerEmail" name="email" autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-phone"></i>
+                            手机号（可选）
+                        </label>
+                        <input type="text" id="registerPhone" name="phone" autocomplete="tel">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-user-plus"></i>
+                            注册
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
             <div id="errorMessage" class="message error hidden" style="position: fixed; top: 20px; right: 20px; z-index: 1001;"></div>
         </div>
     </div>

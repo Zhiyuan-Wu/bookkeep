@@ -13,15 +13,15 @@ from backend.schemas import (
 )
 from backend.auth import get_current_user, require_admin
 from backend.config import (
-    USER_TYPE_ADMIN, USER_TYPE_NORMAL, USER_TYPE_SUPPLIER,
+    USER_TYPE_ADMIN, USER_TYPE_NORMAL, USER_TYPE_SUPPLIER, USER_TYPE_STUDENT,
     SERVICE_STATUS_DRAFT, SERVICE_STATUS_SUBMITTED, SERVICE_STATUS_CONFIRMED, SERVICE_STATUS_INVALID
 )
 from backend.logger import get_logger
-
-logger = get_logger(__name__)
+from backend.email_sender import send_service_notification
 from typing import Optional
 from datetime import datetime
 
+logger = get_logger(__name__)
 router = APIRouter(prefix="/api/services", tags=["services"])
 
 
@@ -69,7 +69,23 @@ async def list_services(
         # 管理员可以看到所有服务记录
         pass
     elif current_user.user_type == USER_TYPE_NORMAL:
-        # 普通用户只能看到自己的服务记录
+        # 普通用户可以看到自己的服务记录以及其管理学生的服务记录
+        from sqlalchemy import or_
+        # 查询管理的学生用户ID列表
+        managed_students = db.query(User.id).filter(User.manager_id == current_user.id).all()
+        managed_student_ids = [s[0] for s in managed_students]
+        # 自己的服务记录 + 管理学生的服务记录
+        if managed_student_ids:
+            query = query.filter(
+                or_(
+                    ServiceRecord.user_id == current_user.id,
+                    ServiceRecord.user_id.in_(managed_student_ids)
+                )
+            )
+        else:
+            query = query.filter(ServiceRecord.user_id == current_user.id)
+    elif current_user.user_type == USER_TYPE_STUDENT:
+        # 学生用户只能看到自己的服务记录
         query = query.filter(ServiceRecord.user_id == current_user.id)
     elif current_user.user_type == USER_TYPE_SUPPLIER:
         # 厂家用户只能看到自己的服务记录
@@ -169,6 +185,20 @@ async def get_service_detail(
     
     # 权限控制
     if current_user.user_type == USER_TYPE_NORMAL:
+        # 普通用户可以访问自己的服务记录以及其管理学生的服务记录
+        if service.user_id != current_user.id:
+            # 检查是否是管理的学生
+            student = db.query(User).filter(
+                User.id == service.user_id,
+                User.manager_id == current_user.id
+            ).first()
+            if not student:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="无权访问此服务记录"
+                )
+    elif current_user.user_type == USER_TYPE_STUDENT:
+        # 学生用户只能访问自己的服务记录
         if service.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -288,6 +318,18 @@ async def create_service(
     db.commit()
     db.refresh(new_service)
     new_service.supplier = supplier
+    
+    # 发送邮件通知（向服务接收用户）
+    if target_user.email:
+        send_service_notification(
+            to_email=target_user.email,
+            to_name=target_user.username,
+            service_id=new_service.id,
+            service_status=SERVICE_STATUS_DRAFT,
+            supplier_name=supplier.name,
+            service_content=new_service.content,
+            service_amount=new_service.amount
+        )
     
     logger.info(
         f"厂家用户创建服务记录: 服务ID={new_service.id}, 厂家ID={supplier.id}, 关联用户={target_user.username}",
@@ -425,39 +467,58 @@ async def update_service_status(
         )
     
     # 权限控制
-    if current_user.user_type in [USER_TYPE_NORMAL, USER_TYPE_ADMIN]:
-        # 普通用户和管理员可以确认服务记录
+    if current_user.user_type == USER_TYPE_NORMAL:
+        # 普通用户可以操作自己的服务记录以及其管理学生的服务记录
+        # 检查是否有权限操作此服务记录
+        has_permission = (service.user_id == current_user.id)
+        if not has_permission:
+            # 检查是否是管理的学生
+            student = db.query(User).filter(
+                User.id == service.user_id,
+                User.manager_id == current_user.id
+            ).first()
+            has_permission = (student is not None)
+        
+        if not has_permission:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权操作此服务记录"
+            )
+        
         if new_status == SERVICE_STATUS_CONFIRMED:
             if service.status != SERVICE_STATUS_SUBMITTED:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="只能确认处于发起状态的服务记录"
                 )
-            if service.user_id != current_user.id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="无权操作此服务记录"
-                )
         elif new_status == SERVICE_STATUS_INVALID:
-            # 普通用户和管理员可以删除自己的服务记录（转为无效）
-            if service.status == SERVICE_STATUS_CONFIRMED:
-                # 确认状态的服务只能转为无效，不能直接删除
-                if service.user_id != current_user.id:
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="无权操作此服务记录"
-                    )
-            elif service.status in [SERVICE_STATUS_DRAFT, SERVICE_STATUS_SUBMITTED]:
-                # 暂存和发起状态的服务可以直接删除
-                if service.user_id != current_user.id:
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="无权操作此服务记录"
-                    )
+            # 普通用户可以删除服务记录（转为无效）
+            pass
         else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="普通用户和管理员只能确认或删除服务记录"
+                detail="普通用户只能确认或删除服务记录"
+            )
+    elif current_user.user_type == USER_TYPE_STUDENT:
+        # 学生用户可以操作自己的服务记录
+        if service.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权操作此服务记录"
+            )
+        if new_status == SERVICE_STATUS_CONFIRMED:
+            if service.status != SERVICE_STATUS_SUBMITTED:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="只能确认处于发起状态的服务记录"
+                )
+        elif new_status == SERVICE_STATUS_INVALID:
+            # 学生用户可以删除服务记录（转为无效）
+            pass
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="学生用户只能确认或删除服务记录"
             )
     elif current_user.user_type == USER_TYPE_SUPPLIER:
         # 厂家用户只能发起自己的服务记录
@@ -494,8 +555,41 @@ async def update_service_status(
             detail=f"无效的状态，必须是: {', '.join(valid_statuses)}"
         )
     
+    # 加载关联信息（用于邮件通知）
+    if not service.supplier:
+        service.supplier = db.query(Supplier).filter(Supplier.id == service.supplier_id).first()
+    if not service.user:
+        service.user = db.query(User).filter(User.id == service.user_id).first()
+    
     service.status = new_status
     db.commit()
+    db.refresh(service)
+    
+    # 发送邮件通知
+    if new_status == SERVICE_STATUS_SUBMITTED:
+        # 发起服务记录：向服务接收用户发送通知
+        if service.user and service.user.email:
+            send_service_notification(
+                to_email=service.user.email,
+                to_name=service.user.username,
+                service_id=service.id,
+                service_status=SERVICE_STATUS_SUBMITTED,
+                supplier_name=service.supplier.name if service.supplier else None,
+                service_content=service.content,
+                service_amount=service.amount
+            )
+    elif new_status == SERVICE_STATUS_CONFIRMED:
+        # 确认服务记录：向厂家用户发送通知
+        if service.supplier and service.supplier.user and service.supplier.user.email:
+            send_service_notification(
+                to_email=service.supplier.user.email,
+                to_name=service.supplier.user.username,
+                service_id=service.id,
+                service_status=SERVICE_STATUS_CONFIRMED,
+                supplier_name=service.supplier.name,
+                service_content=service.content,
+                service_amount=service.amount
+            )
     
     logger.info(
         f"服务记录状态更新成功: 服务ID={service_id}, 新状态={new_status}, 用户={current_user.username}",

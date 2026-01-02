@@ -11,7 +11,7 @@ from backend.schemas import StatisticsResponse, StatisticsItem
 from backend.auth import get_current_user, can_view_internal_price
 from backend.utils import parse_order_content, calculate_order_totals
 from backend.config import (
-    USER_TYPE_ADMIN, USER_TYPE_NORMAL, USER_TYPE_SUPPLIER,
+    USER_TYPE_ADMIN, USER_TYPE_NORMAL, USER_TYPE_SUPPLIER, USER_TYPE_STUDENT,
     ORDER_STATUS_CONFIRMED, SERVICE_STATUS_CONFIRMED, TAX_RATE
 )
 
@@ -40,11 +40,11 @@ async def get_statistics(
     使用样例:
         GET /api/statistics/
     """
-    # 只有普通用户和管理员可以查看统计信息
-    if current_user.user_type == USER_TYPE_SUPPLIER:
+    # 只有普通用户和管理员可以查看统计信息（学生用户不能查看）
+    if current_user.user_type == USER_TYPE_SUPPLIER or current_user.user_type == USER_TYPE_STUDENT:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="厂家用户不能查看统计信息"
+            detail="厂家用户和学生用户不能查看统计信息"
         )
     
     can_view_internal = can_view_internal_price(current_user)
@@ -52,12 +52,36 @@ async def get_statistics(
     # 构建订单查询（只统计确认状态的订单）
     order_query = db.query(Order).filter(Order.status == ORDER_STATUS_CONFIRMED)
     if current_user.user_type == USER_TYPE_NORMAL:
-        order_query = order_query.filter(Order.user_id == current_user.id)
+        # 普通用户统计自己的订单以及其管理学生的订单
+        from sqlalchemy import or_
+        managed_students = db.query(User.id).filter(User.manager_id == current_user.id).all()
+        managed_student_ids = [s[0] for s in managed_students]
+        if managed_student_ids:
+            order_query = order_query.filter(
+                or_(
+                    Order.user_id == current_user.id,
+                    Order.user_id.in_(managed_student_ids)
+                )
+            )
+        else:
+            order_query = order_query.filter(Order.user_id == current_user.id)
     
     # 构建服务记录查询（只统计确认状态的服务）
     service_query = db.query(ServiceRecord).filter(ServiceRecord.status == SERVICE_STATUS_CONFIRMED)
     if current_user.user_type == USER_TYPE_NORMAL:
-        service_query = service_query.filter(ServiceRecord.user_id == current_user.id)
+        # 普通用户统计自己的服务记录以及其管理学生的服务记录
+        from sqlalchemy import or_
+        managed_students = db.query(User.id).filter(User.manager_id == current_user.id).all()
+        managed_student_ids = [s[0] for s in managed_students]
+        if managed_student_ids:
+            service_query = service_query.filter(
+                or_(
+                    ServiceRecord.user_id == current_user.id,
+                    ServiceRecord.user_id.in_(managed_student_ids)
+                )
+            )
+        else:
+            service_query = service_query.filter(ServiceRecord.user_id == current_user.id)
     
     # 获取所有相关的厂家ID
     supplier_ids = set()

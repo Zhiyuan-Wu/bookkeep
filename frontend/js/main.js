@@ -31,6 +31,9 @@ function initUI() {
     if (currentUser.user_type === '厂家') {
         document.getElementById('cartBtn').style.display = 'none';
         document.getElementById('statisticsNav').style.display = 'none';
+    } else if (currentUser.user_type === '学生用户') {
+        document.getElementById('cartBtn').style.display = 'inline-flex';
+        document.getElementById('statisticsNav').style.display = 'none';  // 学生用户不能查看统计信息
     } else {
         document.getElementById('cartBtn').style.display = 'inline-flex';
         document.getElementById('statisticsNav').style.display = 'flex';
@@ -57,11 +60,16 @@ function initUI() {
         loadUsers();
     }
     
-    // 内部价格列
-    if (currentUser.user_type === '厂家') {
+    // 内部价格列（厂家用户和学生用户不显示）
+    if (currentUser.user_type === '厂家' || currentUser.user_type === '学生用户') {
         document.getElementById('internalPriceHeader').style.display = 'none';
     } else {
         document.getElementById('internalPriceHeader').style.display = 'table-cell';
+    }
+    
+    // 学生用户不能查看统计信息
+    if (currentUser.user_type === '学生用户') {
+        document.getElementById('statisticsNav').style.display = 'none';
     }
 }
 

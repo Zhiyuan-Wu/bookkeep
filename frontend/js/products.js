@@ -47,7 +47,7 @@ function renderProductsTable(products) {
     tbody.innerHTML = '';
     
     if (products.length === 0) {
-        const colCount = currentUser.user_type !== '厂家' ? 8 : 7;
+        const colCount = (currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') ? 8 : 7;
         tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; padding: 40px;">暂无数据</td></tr>`;
         return;
     }
@@ -57,7 +57,7 @@ function renderProductsTable(products) {
         
         const actions = `
             <div class="action-buttons">
-                ${currentUser.user_type !== '厂家' ? `
+                ${(currentUser.user_type !== '厂家' && currentUser.user_type !== '管理员') ? `
                     <button class="action-btn btn-success" onclick="addToCart(${product.id})" title="添加到购物车">
                         <i class="fas fa-cart-plus"></i>
                     </button>
@@ -81,7 +81,7 @@ function renderProductsTable(products) {
             <td>${product.brand || '-'}</td>
             <td>${product.model || '-'}</td>
             <td>${product.specification || '-'}</td>
-            ${currentUser.user_type !== '厂家' ? `<td>${internalPrice}</td>` : ''}
+            ${(currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') ? `<td>${internalPrice}</td>` : ''}
             <td>${formatCurrency(product.tax_included_price)}</td>
             <td>${product.supplier_name || '-'}</td>
         `;

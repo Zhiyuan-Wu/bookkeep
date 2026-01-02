@@ -70,16 +70,24 @@ function renderUsersTable(users) {
                 <button class="action-btn" onclick="editUserPassword(${user.id})" title="修改密码">
                     <i class="fas fa-key"></i>
                 </button>
+                <button class="action-btn" onclick="editUserContact(${user.id})" title="修改联系方式">
+                    <i class="fas fa-address-book"></i>
+                </button>
                 <button class="action-btn btn-danger" onclick="deleteUser(${user.id})" title="删除用户">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
         `;
         
+        const contactInfo = [];
+        if (user.email) contactInfo.push(`📧 ${user.email}`);
+        if (user.phone) contactInfo.push(`📱 ${user.phone}`);
+        const contactHtml = contactInfo.length > 0 ? `<br><small style="color: #666;">${contactInfo.join(' ')}</small>` : '';
+        
         row.innerHTML = `
             <td>${actions}</td>
             <td>${user.id}</td>
-            <td>${user.username}</td>
+            <td>${user.username}${contactHtml}</td>
             <td>${user.user_type}</td>
             <td>${formatDate(user.created_at)}</td>
         `;
@@ -102,6 +110,68 @@ async function editUserPassword(userId) {
     } catch (error) {
         showMessage('密码修改失败: ' + error.message, 'error');
     }
+}
+
+// 编辑用户联系方式
+async function editUserContact(userId) {
+    // 获取用户信息
+    const users = await apiRequest('/users/');
+    const user = users.find(u => u.id === userId);
+    if (!user) {
+        showMessage('用户不存在', 'error');
+        return;
+    }
+    
+    const formHtml = `
+        <form id="contactForm">
+            <div class="form-group">
+                <label>
+                    <i class="fas fa-envelope"></i>
+                    邮箱
+                </label>
+                <input type="email" name="email" value="${user.email || ''}" placeholder="请输入邮箱地址">
+            </div>
+            <div class="form-group">
+                <label>
+                    <i class="fas fa-phone"></i>
+                    手机号
+                </label>
+                <input type="text" name="phone" value="${user.phone || ''}" placeholder="请输入手机号">
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('contactModal')">取消</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+            </div>
+        </form>
+    `;
+    
+    const modal = createModal('contactModal', '修改联系方式', formHtml);
+    document.getElementById('modalContainer').appendChild(modal);
+    openModal('contactModal');
+    
+    // 绑定表单提交事件
+    document.getElementById('contactForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = document.getElementById('contactForm');
+        const formData = getFormData(form);
+        
+        try {
+            await apiRequest(`/users/${userId}/contact`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    email: formData.email || null,
+                    phone: formData.phone || null
+                })
+            });
+            showMessage('联系方式修改成功', 'success');
+            closeModal('contactModal');
+            loadUsers();
+        } catch (error) {
+            showMessage('联系方式修改失败: ' + error.message, 'error');
+        }
+    });
 }
 
 // 删除用户
@@ -162,7 +232,35 @@ function openUserModal() {
                         <input type="radio" name="user_type" value="厂家" id="userTypeSupplier" required>
                         <span><i class="fas fa-building"></i> 厂家</span>
                     </div>
+                    <div class="radio-item">
+                        <input type="radio" name="user_type" value="学生用户" id="userTypeStudent" required>
+                        <span><i class="fas fa-user-graduate"></i> 学生用户</span>
+                    </div>
                 </div>
+            </div>
+            <div class="form-group" id="managerUserGroup" style="display: none;">
+                <label>
+                    <i class="fas fa-user-tie"></i>
+                    管理用户 *
+                </label>
+                <select name="manager_id" id="managerSelect" required>
+                    <option value="">请选择管理用户</option>
+                </select>
+                <small style="color: #666; font-size: 12px;">学生用户必须指定一个普通用户作为管理用户</small>
+            </div>
+            <div class="form-group">
+                <label>
+                    <i class="fas fa-envelope"></i>
+                    邮箱（可选）
+                </label>
+                <input type="email" name="email" placeholder="请输入邮箱地址">
+            </div>
+            <div class="form-group">
+                <label>
+                    <i class="fas fa-phone"></i>
+                    手机号（可选）
+                </label>
+                <input type="text" name="phone" placeholder="请输入手机号">
             </div>
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('userModal')">取消</button>
@@ -177,8 +275,14 @@ function openUserModal() {
     document.getElementById('modalContainer').appendChild(modal);
     openModal('userModal');
     
+    // 加载普通用户列表（用于学生用户的管理用户选择）
+    loadNormalUsersForManager();
+    
     // 绑定单选按钮点击事件，确保选中状态正确显示
     const radioItems = modal.querySelectorAll('.radio-item');
+    const managerUserGroup = modal.querySelector('#managerUserGroup');
+    const managerSelect = modal.querySelector('#managerSelect');
+    
     radioItems.forEach(item => {
         const radio = item.querySelector('input[type="radio"]');
         if (radio) {
@@ -191,7 +295,7 @@ function openUserModal() {
                 }
             });
             
-            // 监听radio的change事件，更新样式
+            // 监听radio的change事件，更新样式和管理用户选择框显示
             radio.addEventListener('change', () => {
                 // 移除所有选中状态
                 radioItems.forEach(ri => {
@@ -200,6 +304,16 @@ function openUserModal() {
                 // 添加当前选中状态
                 if (radio.checked) {
                     item.classList.add('selected');
+                }
+                
+                // 如果是学生用户，显示管理用户选择框
+                if (radio.value === '学生用户') {
+                    managerUserGroup.style.display = 'block';
+                    managerSelect.required = true;
+                } else {
+                    managerUserGroup.style.display = 'none';
+                    managerSelect.required = false;
+                    managerSelect.value = '';
                 }
             });
         }
@@ -236,13 +350,28 @@ async function createUserFromForm() {
     }
     
     try {
+        const requestData = {
+            username: formData.username,
+            password: formData.password,
+            user_type: formData.user_type
+        };
+        
+        // 如果是学生用户，需要添加管理用户ID
+        if (formData.user_type === '学生用户') {
+            if (!formData.manager_id) {
+                showMessage('学生用户必须指定管理用户', 'error');
+                return;
+            }
+            requestData.manager_id = parseInt(formData.manager_id);
+        }
+        
+        // 添加联系方式
+        if (formData.email) requestData.email = formData.email;
+        if (formData.phone) requestData.phone = formData.phone;
+        
         await apiRequest('/users/', {
             method: 'POST',
-            body: JSON.stringify({
-                username: formData.username,
-                password: formData.password,
-                user_type: formData.user_type
-            })
+            body: JSON.stringify(requestData)
         });
         showMessage('用户创建成功', 'success');
         closeModal('userModal');
