@@ -327,23 +327,26 @@ async def create_order(
             detail="厂家不存在"
         )
     
-    # 检查并补齐内部价格
+    # 从数据库重新查询所有商品的价格（不接受客户端传入的内部价格）
     items_dict = []
     for item in order_data.items:
         item_dict = item.model_dump()
-        # 如果内部价格为空，从数据库查询
-        if item_dict.get('internal_price') is None:
-            product = db.query(Product).filter(
-                Product.id == item_dict['product_id'],
-                Product.supplier_id == order_data.supplier_id
-            ).first()
-            if product:
-                item_dict['internal_price'] = product.internal_price
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"商品ID {item_dict['product_id']} 不存在"
-                )
+
+        # 强制从数据库查询商品，验证商品存在并获取正确的内部价格
+        product = db.query(Product).filter(
+            Product.id == item_dict['product_id'],
+            Product.supplier_id == order_data.supplier_id,
+            Product.is_deleted == False
+        ).first()
+
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"商品ID {item_dict['product_id']} 不存在或已删除"
+            )
+
+        # 使用数据库中的内部价格，忽略客户端传入的值
+        item_dict['internal_price'] = product.internal_price
         items_dict.append(item_dict)
     
     # 格式化订单内容
@@ -670,7 +673,7 @@ async def export_order_excel(
                     detail="无权访问此订单"
                 )
         elif current_user.user_type == USER_TYPE_SUPPLIER:
-            if order.supplier_id != current_user.id:
+            if not current_user.supplier_id or order.supplier_id != current_user.supplier_id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="无权访问此订单"

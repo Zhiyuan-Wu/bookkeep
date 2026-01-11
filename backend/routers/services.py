@@ -270,8 +270,6 @@ async def create_service(
             "user_username": "普通用户1"
         }
     """
-    print(service_data)
-    print(current_user)
     # 只有厂家用户可以创建服务记录
     if current_user.user_type != USER_TYPE_SUPPLIER:
         raise HTTPException(
