@@ -172,7 +172,7 @@ function renderCartContent() {
     
     // 构建总计文本
     let totalText = '总计：';
-    if (currentUser.user_type !== '厂家') {
+    if (currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') {
         totalText += `内部${formatCurrency(totalInternal)}/含税${formatCurrency(totalTaxIncluded)}`;
     } else {
         totalText += `含税${formatCurrency(totalTaxIncluded)}`;
