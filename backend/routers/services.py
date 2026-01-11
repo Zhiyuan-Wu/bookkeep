@@ -663,7 +663,7 @@ async def delete_service(
             )
     
     # 无效的服务记录不能删除
-    if service.status == SERVICE_STATUS_INVALID:
+    if current_user.user_type != USER_TYPE_ADMIN and service.status == SERVICE_STATUS_INVALID:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="服务记录已失效"

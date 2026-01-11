@@ -59,7 +59,7 @@ function renderServicesTable(services) {
                         <i class="fas fa-check"></i>
                     </button>
                 ` : ''}
-                ${service.status !== '无效' ? `
+                ${(service.status !== '无效' || currentUser.user_type === '管理员') ? `
                     <button class="action-btn btn-danger" onclick="deleteService(${service.id})" title="删除">
                         <i class="fas fa-trash"></i>
                     </button>

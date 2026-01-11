@@ -63,24 +63,21 @@ function renderOrdersTable(orders) {
                 <button class="action-btn" onclick="viewOrderDetail(${order.id})" title="查看详情">
                     <i class="fas fa-eye"></i>
                 </button>
-                ${currentUser.user_type === '厂家' ? `
-                    ${order.status === '发起' ? `
-                        <button class="action-btn btn-success" onclick="confirmOrder(${order.id})" title="确认订单">
-                            <i class="fas fa-check"></i>
-                        </button>
-                    ` : ''}
-                ` : `
-                    ${order.status === '暂存' ? `
-                        <button class="action-btn btn-primary" onclick="submitOrder(${order.id})" title="发起订单">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    ` : ''}
-                    ${order.status !== '无效' ? `
-                        <button class="action-btn btn-danger" onclick="deleteOrder(${order.id})" title="删除">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    ` : ''}
-                `}
+                ${currentUser.user_type === '厂家' && order.status === '发起' ? `
+                    <button class="action-btn btn-success" onclick="confirmOrder(${order.id})" title="确认订单">
+                        <i class="fas fa-check"></i>
+                    </button>
+                ` : ''}
+                ${currentUser.user_type !== '厂家' && order.status === '暂存' ? `
+                    <button class="action-btn btn-primary" onclick="submitOrder(${order.id})" title="发起订单">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                ` : ''}
+                ${(currentUser.user_type !== '厂家' && order.status !== '无效') || currentUser.user_type === '管理员' ? `
+                    <button class="action-btn btn-danger" onclick="deleteOrder(${order.id})" title="删除">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                ` : ''}
             </div>
         `;
         

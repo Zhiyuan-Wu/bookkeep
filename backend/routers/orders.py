@@ -600,7 +600,7 @@ async def delete_order(
             )
     
     # 无效的订单不能删除
-    if order.status == ORDER_STATUS_INVALID:
+    if current_user.user_type != USER_TYPE_ADMIN and order.status == ORDER_STATUS_INVALID:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="订单已失效"
