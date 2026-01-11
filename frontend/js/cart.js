@@ -86,77 +86,132 @@ window.openCartModal = function openCartModal() {
 
 // 渲染购物车内容
 function renderCartContent() {
+    // 检测是否为移动端
+    const isMobile = window.innerWidth <= 768;
+
     if (Object.keys(cart).length === 0) {
         return '<div class="cart-empty"><i class="fas fa-shopping-cart"></i><p>购物车为空</p></div>';
     }
-    
+
     let html = '<div class="cart-items">';
-    
+
     for (const supplierId in cart) {
         const group = cart[supplierId];
-        html += `
-            <div class="cart-group">
-                <div class="cart-group-header">
-                    <i class="fas fa-building"></i>
-                    <h3>${group.supplierName}</h3>
-                </div>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 7%;">操作</th>
-                            <th style="width: 7%;">隐藏</th>
-                            <th style="width: 18%;">商品名</th>
-                            <th style="width: 10%;">品牌</th>
-                            <th style="width: 10%;">型号</th>
-                            <th style="width: 15%;">规格</th>
-                            ${currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户' ? '<th style="width: 11%;">内部价格</th>' : ''}
-                            <th style="width: 11%;">含税价格</th>
-                            <th style="width: 11%;">数量</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        group.items.forEach((item, index) => {
-            const mutedClass = item.muted ? 'muted' : '';
+
+        if (isMobile) {
+            // 移动端：卡片式布局
             html += `
-                <tr class="${mutedClass}">
-                    <td>
-                        <button class="action-btn btn-danger" onclick="window.removeFromCart(${supplierId}, ${index})" title="删除">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                    <td>
-                        <button class="action-btn" onclick="window.toggleMute(${supplierId}, ${index})" title="${item.muted ? '显示' : '隐藏'}">
-                            <i class="fas fa-eye${item.muted ? '-slash' : ''}"></i>
-                        </button>
-                    </td>
-                    <td>${item.name}</td>
-                    <td>${item.brand || '-'}</td>
-                    <td>${item.model || '-'}</td>
-                    <td>${item.specification || '-'}</td>
-                    ${(currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') ? `<td>${item.internal_price !== null && item.internal_price !== undefined ? formatCurrency(item.internal_price) : '-'}</td>` : ''}
-                    <td>${formatCurrency(item.tax_included_price)}</td>
-                    <td>
-                        <input type="text" value="${item.quantity}" 
-                               data-supplier-id="${supplierId}" 
-                               data-item-index="${index}"
-                               class="cart-quantity-input"
-                               style="width: 60px; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface-muted); font-size: 0.95rem; transition: var(--transition-base);"
-                               onfocus="this.style.background='var(--color-surface)'; this.style.borderColor='var(--color-primary)'; this.style.boxShadow='0 0 0 3px rgba(20, 118, 255, 0.12)'"
-                               onblur="this.style.background='var(--color-surface-muted)'; this.style.borderColor='var(--color-border)'; this.style.boxShadow='none'; window.updateCartQuantity(this)">
-                    </td>
-                </tr>
+                <div class="cart-group">
+                    <div class="cart-group-header">
+                        <i class="fas fa-building"></i>
+                        <h3>${group.supplierName}</h3>
+                    </div>
+                    <div class="cart-items-mobile">
             `;
-        });
-        
-        html += '</tbody></table></div>';
+
+            group.items.forEach((item, index) => {
+                const mutedClass = item.muted ? 'muted' : '';
+                html += `
+                    <div class="cart-item-card ${mutedClass}" data-supplier-id="${supplierId}" data-index="${index}">
+                        <div class="cart-item-header">
+                            <span class="cart-item-name">${item.name}</span>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="action-btn" onclick="window.toggleMute(${supplierId}, ${index})" title="${item.muted ? '显示' : '隐藏'}">
+                                    <i class="fas fa-eye${item.muted ? '-slash' : ''}"></i>
+                                </button>
+                                <button class="action-btn btn-danger" onclick="window.removeFromCart(${supplierId}, ${index})" title="删除">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="cart-item-details">
+                            ${item.brand ? `<span class="cart-item-detail"><i class="fas fa-tag"></i>${item.brand}</span>` : ''}
+                            ${item.model ? `<span class="cart-item-detail"><i class="fas fa-cog"></i>${item.model}</span>` : ''}
+                        </div>
+                        <div class="cart-item-price">
+                            ${(currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户' && item.internal_price !== null && item.internal_price !== undefined) ?
+                                `<span class="price-internal">内部: ${formatCurrency(item.internal_price)}</span>` : ''}
+                            <span class="price-tax">含税: ${formatCurrency(item.tax_included_price)}</span>
+                        </div>
+                        <div class="cart-item-quantity">
+                            <button class="qty-btn" onclick="window.adjustQuantity(${supplierId}, ${index}, -1)">-</button>
+                            <input type="number" value="${item.quantity}" class="qty-input"
+                                   data-supplier-id="${supplierId}"
+                                   data-item-index="${index}"
+                                   onchange="window.updateCartQuantityFromInput(this, ${supplierId}, ${index})">
+                            <button class="qty-btn" onclick="window.adjustQuantity(${supplierId}, ${index}, 1)">+</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div></div>';
+        } else {
+            // PC端：保持原有表格布局
+            html += `
+                <div class="cart-group">
+                    <div class="cart-group-header">
+                        <i class="fas fa-building"></i>
+                        <h3>${group.supplierName}</h3>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 7%;">操作</th>
+                                <th style="width: 7%;">隐藏</th>
+                                <th style="width: 18%;">商品名</th>
+                                <th style="width: 10%;">品牌</th>
+                                <th style="width: 10%;">型号</th>
+                                <th style="width: 15%;">规格</th>
+                                ${currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户' ? '<th style="width: 11%;">内部价格</th>' : ''}
+                                <th style="width: 11%;">含税价格</th>
+                                <th style="width: 11%;">数量</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            group.items.forEach((item, index) => {
+                const mutedClass = item.muted ? 'muted' : '';
+                html += `
+                    <tr class="${mutedClass}">
+                        <td>
+                            <button class="action-btn btn-danger" onclick="window.removeFromCart(${supplierId}, ${index})" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                        <td>
+                            <button class="action-btn" onclick="window.toggleMute(${supplierId}, ${index})" title="${item.muted ? '显示' : '隐藏'}">
+                                <i class="fas fa-eye${item.muted ? '-slash' : ''}"></i>
+                            </button>
+                        </td>
+                        <td>${item.name}</td>
+                        <td>${item.brand || '-'}</td>
+                        <td>${item.model || '-'}</td>
+                        <td>${item.specification || '-'}</td>
+                        ${(currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') ? `<td>${item.internal_price !== null && item.internal_price !== undefined ? formatCurrency(item.internal_price) : '-'}</td>` : ''}
+                        <td>${formatCurrency(item.tax_included_price)}</td>
+                        <td>
+                            <input type="text" value="${item.quantity}"
+                                   data-supplier-id="${supplierId}"
+                                   data-item-index="${index}"
+                                   class="cart-quantity-input"
+                                   style="width: 60px; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface-muted); font-size: 0.95rem; transition: var(--transition-base);"
+                                   onfocus="this.style.background='var(--color-surface)'; this.style.borderColor='var(--color-primary)'; this.style.boxShadow='0 0 0 3px rgba(20, 118, 255, 0.12)'"
+                                   onblur="this.style.background='var(--color-surface-muted)'; this.style.borderColor='var(--color-border)'; this.style.boxShadow='none'; window.updateCartQuantity(this)">
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table></div>';
+        }
     }
-    
+
     // 计算总计
     let totalInternal = 0;
     let totalTaxIncluded = 0;
-    
+
     for (const supplierId in cart) {
         cart[supplierId].items.forEach(item => {
             if (!item.muted) {
@@ -169,7 +224,7 @@ function renderCartContent() {
             }
         });
     }
-    
+
     // 构建总计文本
     let totalText = '总计：';
     if (currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') {
@@ -177,7 +232,7 @@ function renderCartContent() {
     } else {
         totalText += `含税${formatCurrency(totalTaxIncluded)}`;
     }
-    
+
     html += `
         <div class="cart-total-row" id="cartTotalRow">
             <div class="cart-total-text" id="cartTotalText">${totalText}</div>
@@ -188,7 +243,7 @@ function renderCartContent() {
             </button>
         </div>
     `;
-    
+
     return html;
 }
 
@@ -345,4 +400,43 @@ function createModal(id, title, content) {
     
     return modal;
 }
+
+// ==================== 移动端购物车辅助函数 ====================
+
+// 调整数量（移动端+/-按钮）
+window.adjustQuantity = function adjustQuantity(supplierId, index, delta) {
+    const item = cart[supplierId].items[index];
+    const newQuantity = item.quantity + delta;
+
+    if (newQuantity < 1) {
+        showMessage('数量不能小于1', 'error');
+        return;
+    }
+
+    item.quantity = newQuantity;
+    updateCartBadge();
+    updateCartTotals();
+
+    // 更新输入框显示
+    const input = document.querySelector(`.qty-input[data-supplier-id="${supplierId}"][data-item-index="${index}"]`);
+    if (input) {
+        input.value = newQuantity;
+    }
+};
+
+// 从输入框更新数量（移动端）
+window.updateCartQuantityFromInput = function updateCartQuantityFromInput(input, supplierId, index) {
+    const quantity = parseInt(input.value);
+
+    if (isNaN(quantity) || quantity < 1) {
+        showMessage('数量必须是大于0的整数', 'error');
+        // 恢复原值
+        input.value = cart[supplierId].items[index].quantity;
+        return;
+    }
+
+    cart[supplierId].items[index].quantity = quantity;
+    updateCartBadge();
+    updateCartTotals();
+};
 

@@ -35,15 +35,15 @@ async function loadServices(page = 1) {
 function renderServicesTable(services) {
     const tbody = document.getElementById('servicesTableBody');
     tbody.innerHTML = '';
-    
+
     if (services.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">暂无数据</td></tr>';
         return;
     }
-    
+
     services.forEach(service => {
         const row = document.createElement('tr');
-        
+
         const actions = `
             <div class="action-buttons">
                 <button class="action-btn" onclick="viewServiceDetail(${service.id})" title="查看详情">
@@ -66,18 +66,19 @@ function renderServicesTable(services) {
                 ` : ''}
             </div>
         `;
-        
+
+        // 添加data-label属性用于移动端显示
         row.innerHTML = `
-            <td>${actions}</td>
-            <td>#${service.id}</td>
-            <td>${service.username || '-'}</td>
-            <td>${service.supplier_name || '-'}</td>
-            <td>${service.content.length > 50 ? service.content.substring(0, 50) + '...' : service.content}</td>
-            <td>${formatCurrency(service.amount)}</td>
-            <td><span class="tag-item status-tag status-${getStatusClass(service.status)}">${service.status}</span></td>
-            <td>${formatDate(service.created_at)}</td>
+            <td data-label="操作">${actions}</td>
+            <td data-label="服务ID">#${service.id}</td>
+            <td data-label="用户">${service.username || '-'}</td>
+            <td data-label="厂家">${service.supplier_name || '-'}</td>
+            <td data-label="服务内容">${service.content.length > 50 ? service.content.substring(0, 50) + '...' : service.content}</td>
+            <td data-label="金额">${formatCurrency(service.amount)}</td>
+            <td data-label="状态"><span class="tag-item status-tag status-${getStatusClass(service.status)}">${service.status}</span></td>
+            <td data-label="创建时间">${formatDate(service.created_at)}</td>
         `;
-        
+
         tbody.appendChild(row);
     });
 }

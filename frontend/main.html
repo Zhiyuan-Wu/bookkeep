@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>报价及记账系统</title>
     <link rel="stylesheet" href="/static/style_example.css">
-    <link rel="stylesheet" href="/frontend/css/style.css">
+    <link rel="stylesheet" href="/frontend/css/base.css">
+    <link rel="stylesheet" href="/frontend/css/pc.css">
+    <link rel="stylesheet" href="/frontend/css/mobile.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
@@ -56,6 +58,38 @@
         </div>
     </div>
 
+    <!-- 移动端顶部导航栏 -->
+    <header class="mobile-header" style="display: none;">
+        <button class="hamburger-btn" id="hamburgerBtn">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="mobile-title">报价记账系统</h1>
+        <div class="mobile-header-actions">
+            <button class="mobile-cart-btn" id="mobileCartBtn">
+                <i class="fas fa-shopping-cart"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- 底部Tab导航（商品、订单、服务） -->
+    <nav class="mobile-bottom-nav" style="display: none;">
+        <div class="nav-item" data-page="products">
+            <i class="fas fa-list"></i>
+            <span>商品</span>
+        </div>
+        <div class="nav-item" data-page="orders">
+            <i class="fas fa-shopping-cart"></i>
+            <span>订单</span>
+        </div>
+        <div class="nav-item" data-page="services">
+            <i class="fas fa-tools"></i>
+            <span>服务</span>
+        </div>
+    </nav>
+
+    <!-- 侧边栏遮罩层 -->
+    <div class="sidebar-overlay" id="sidebarOverlay" style="display: none;"></div>
+
     <!-- 主内容区 -->
     <div class="main-content">
         <!-- 商品列表页面 -->
@@ -69,11 +103,16 @@
                 </div>
             </div>
             <div class="filter-section">
-                <div class="filter-row">
+                <!-- 基础筛选（移动端常驻） -->
+                <div class="filter-row basic-filters">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>商品名称</label>
                         <input type="text" id="filterProductName" placeholder="输入商品名称">
                     </div>
+                </div>
+
+                <!-- 高级筛选（移动端可折叠） -->
+                <div class="filter-row advanced-filters" id="advancedFilters">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>型号</label>
                         <input type="text" id="filterProductModel" placeholder="输入型号">
@@ -95,6 +134,12 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- 移动端高级筛选切换按钮 -->
+                <button class="filter-toggle-btn" id="filterToggleBtn" style="display: none;">
+                    <span>高级筛选</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
             </div>
             <div class="data-table-wrapper">
                 <table class="data-table">

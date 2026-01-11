@@ -35,15 +35,15 @@ async function loadOrders(page = 1) {
 function renderOrdersTable(orders) {
     const tbody = document.getElementById('ordersTableBody');
     tbody.innerHTML = '';
-    
+
     if (orders.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;">暂无数据</td></tr>';
         return;
     }
-    
+
     orders.forEach(order => {
         const row = document.createElement('tr');
-        
+
         // 解析订单内容以显示摘要
         let contentSummary = '无内容';
         try {
@@ -57,7 +57,7 @@ function renderOrdersTable(orders) {
         } catch (e) {
             contentSummary = order.content.substring(0, 50) + '...';
         }
-        
+
         const actions = `
             <div class="action-buttons">
                 <button class="action-btn" onclick="viewOrderDetail(${order.id})" title="查看详情">
@@ -80,17 +80,18 @@ function renderOrdersTable(orders) {
                 ` : ''}
             </div>
         `;
-        
+
+        // 添加data-label属性用于移动端显示
         row.innerHTML = `
-            <td>${actions}</td>
-            <td>#${order.id}</td>
-            <td>${order.username || '-'}</td>
-            <td>${order.supplier_name || '-'}</td>
-            <td>${contentSummary}</td>
-            <td><span class="tag-item status-tag status-${getStatusClass(order.status)}">${order.status}</span></td>
-            <td>${formatDate(order.created_at)}</td>
+            <td data-label="操作">${actions}</td>
+            <td data-label="订单号">#${order.id}</td>
+            <td data-label="用户">${order.username || '-'}</td>
+            <td data-label="厂家">${order.supplier_name || '-'}</td>
+            <td data-label="订单内容">${contentSummary}</td>
+            <td data-label="状态"><span class="tag-item status-tag status-${getStatusClass(order.status)}">${order.status}</span></td>
+            <td data-label="创建时间">${formatDate(order.created_at)}</td>
         `;
-        
+
         tbody.appendChild(row);
     });
 }

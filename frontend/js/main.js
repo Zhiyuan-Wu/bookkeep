@@ -124,5 +124,58 @@ function switchPage(page) {
             // 设置页面不需要加载数据
             break;
     }
+
+    // 同步移动端底部导航高亮
+    const mobileNavItems = document.querySelectorAll('.mobile-bottom-nav .nav-item');
+    mobileNavItems.forEach(item => {
+        item.classList.toggle('active', item.dataset.page === page);
+    });
+}
+
+// ==================== 移动端侧边栏切换 ====================
+const hamburgerBtn = document.getElementById('hamburgerBtn');
+const sidebar = document.querySelector('.sidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+function toggleSidebar() {
+    if (sidebar && sidebarOverlay) {
+        sidebar.classList.toggle('open');
+        sidebarOverlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+    }
+}
+
+function closeSidebar() {
+    if (sidebar && sidebarOverlay) {
+        sidebar.classList.remove('open');
+        sidebarOverlay.style.display = 'none';
+    }
+}
+
+if (hamburgerBtn) {
+    hamburgerBtn.addEventListener('click', toggleSidebar);
+}
+
+if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', closeSidebar);
+}
+
+// ==================== 移动端底部导航切换 ====================
+const mobileNavItems = document.querySelectorAll('.mobile-bottom-nav .nav-item');
+mobileNavItems.forEach(item => {
+    item.addEventListener('click', () => {
+        const page = item.dataset.page;
+        switchPage(page);
+        closeSidebar(); // 如果侧边栏打开，关闭它
+    });
+});
+
+// ==================== 移动端购物车按钮 ====================
+const mobileCartBtn = document.getElementById('mobileCartBtn');
+if (mobileCartBtn) {
+    mobileCartBtn.addEventListener('click', () => {
+        if (typeof openCartModal === 'function') {
+            openCartModal();
+        }
+    });
 }
 

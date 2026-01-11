@@ -45,16 +45,16 @@ async function loadProducts(page = 1) {
 function renderProductsTable(products) {
     const tbody = document.getElementById('productsTableBody');
     tbody.innerHTML = '';
-    
+
     if (products.length === 0) {
         const colCount = (currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') ? 8 : 7;
         tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; padding: 40px;">暂无数据</td></tr>`;
         return;
     }
-    
+
     products.forEach(product => {
         const row = document.createElement('tr');
-        
+
         const actions = `
             <div class="action-buttons">
                 ${currentUser.user_type !== '厂家' ? `
@@ -72,22 +72,23 @@ function renderProductsTable(products) {
                 ` : ''}
             </div>
         `;
-        
+
         const internalPrice = product.internal_price !== null && product.internal_price !== undefined
             ? formatCurrency(product.internal_price)
             : '-';
-        
+
+        // 添加data-label属性用于移动端显示
         row.innerHTML = `
-            <td>${actions}</td>
-            <td>${product.name}</td>
-            <td>${product.brand || '-'}</td>
-            <td>${product.model || '-'}</td>
-            <td>${product.specification || '-'}</td>
-            ${(currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') ? `<td>${internalPrice}</td>` : ''}
-            <td>${formatCurrency(product.tax_included_price)}</td>
-            <td>${product.supplier_name || '-'}</td>
+            <td data-label="操作">${actions}</td>
+            <td data-label="商品名">${product.name}</td>
+            <td data-label="品牌">${product.brand || '-'}</td>
+            <td data-label="型号">${product.model || '-'}</td>
+            <td data-label="规格">${product.specification || '-'}</td>
+            ${(currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') ? `<td data-label="内部价格">${internalPrice}</td>` : ''}
+            <td data-label="含税价格">${formatCurrency(product.tax_included_price)}</td>
+            <td data-label="厂家">${product.supplier_name || '-'}</td>
         `;
-        
+
         tbody.appendChild(row);
     });
 }
@@ -348,4 +349,27 @@ function resetProductFilters() {
     document.getElementById('filterMaxPrice').value = '';
     loadProducts(1);
 }
+
+// ==================== 移动端筛选切换 ====================
+const filterToggleBtn = document.getElementById('filterToggleBtn');
+const advancedFilters = document.getElementById('advancedFilters');
+
+// 检测移动端
+function isMobile() {
+    return window.innerWidth <= 768;
+}
+
+// 初始化筛选按钮
+function initFilterToggle() {
+    if (filterToggleBtn && isMobile()) {
+        filterToggleBtn.style.display = 'flex';
+        filterToggleBtn.addEventListener('click', () => {
+            advancedFilters.classList.toggle('show');
+            filterToggleBtn.classList.toggle('expanded');
+        });
+    }
+}
+
+// 页面加载时初始化筛选切换
+document.addEventListener('DOMContentLoaded', initFilterToggle);
 

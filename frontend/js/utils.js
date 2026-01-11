@@ -10,6 +10,9 @@ const cache = {
     suppliersTimestamp: null
 };
 
+// 模态框计数器（用于背景滚动锁定）
+let modalCount = 0;
+
 // 缓存过期时间（毫秒）
 const CACHE_EXPIRY = 1 * 60 * 1000; // 1分钟
 
@@ -133,6 +136,11 @@ window.openModal = function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'block';
+        modalCount++;
+        // 锁定背景滚动（所有设备）
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
     }
 }
 
@@ -145,6 +153,14 @@ window.closeModal = function closeModal(modalId) {
     if (modal) {
         // 从DOM中移除模态框，避免重复元素和事件监听器
         modal.remove();
+        modalCount--;
+        // 只有没有其他模态框时才恢复滚动
+        if (modalCount <= 0) {
+            modalCount = 0;
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
+        }
     }
 }
 
