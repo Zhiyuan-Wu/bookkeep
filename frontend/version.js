@@ -6,7 +6,7 @@
  *
  * 使用方法：
  * 1. 修改下面的 VERSION 值，例如从 '1.0.0' 改为 '1.0.1'
- * 2. 在 index.html 和 main.html 中全局替换 ?v=1.0.0 为 ?v=1.0.1
+ * 2. 在 index.html 和 main.html 中全局替换 ?v=1.0.1 为 ?v=1.0.1
  */
 
 const VERSION = '1.0.0';
