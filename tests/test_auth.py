@@ -24,7 +24,7 @@ def setup_db():
             test_user = User(
                 username="testuser",
                 password_hash=hash_password("testpass"),
-                user_type="普通用户"
+                user_type="课题组用户"
             )
             db.add(test_user)
             db.commit()

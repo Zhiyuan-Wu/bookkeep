@@ -15,25 +15,25 @@ class User(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, nullable=False, index=True)
-    user_type = Column(String(20), nullable=False)  # 管理员、普通用户、厂家、学生用户
+    user_type = Column(String(20), nullable=False)  # 管理员、课题组用户、供应商、普通用户
     password_hash = Column(String(255), nullable=False)
-    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=True, index=True)  # 厂家用户关联的supplier_id
-    manager_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # 学生用户关联的管理用户ID
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=True, index=True)  # 供应商用户关联的supplier_id
+    manager_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # 普通用户关联的管理用户ID
     email = Column(String(100), nullable=True)  # 邮箱
     phone = Column(String(20), nullable=True)  # 手机号
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # 关联关系
-    # 厂家用户通过supplier_id关联到suppliers表
+    # 供应商用户通过supplier_id关联到suppliers表
     supplier = relationship("Supplier", foreign_keys=[supplier_id], back_populates="user")
-    # 学生用户通过manager_id关联到管理用户（普通用户）
+    # 普通用户通过manager_id关联到管理用户（课题组用户）
     manager = relationship("User", foreign_keys=[manager_id], remote_side=[id], backref="managed_students")
     orders = relationship("Order", back_populates="user", foreign_keys="Order.user_id")
     services = relationship("ServiceRecord", back_populates="user", foreign_keys="ServiceRecord.user_id")
 
 
 class Supplier(Base):
-    """厂家表"""
+    """供应商表"""
     __tablename__ = "suppliers"
     
     id = Column(Integer, primary_key=True, index=True)

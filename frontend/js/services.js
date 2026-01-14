@@ -49,12 +49,12 @@ function renderServicesTable(services) {
                 <button class="action-btn" onclick="viewServiceDetail(${service.id})" title="查看详情">
                     <i class="fas fa-eye"></i>
                 </button>
-                ${currentUser.user_type === '厂家' && service.status === '暂存' ? `
+                ${currentUser.user_type === '供应商' && service.status === '暂存' ? `
                     <button class="action-btn btn-primary" onclick="submitService(${service.id})" title="发起服务">
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 ` : ''}
-                ${(currentUser.user_type === '普通用户' || currentUser.user_type === '管理员') && service.status === '发起' && service.user_id === currentUser.id ? `
+                ${(currentUser.user_type === '课题组用户' || currentUser.user_type === '管理员') && service.status === '发起' && service.user_id === currentUser.id ? `
                     <button class="action-btn btn-success" onclick="confirmService(${service.id})" title="确认">
                         <i class="fas fa-check"></i>
                     </button>
@@ -72,7 +72,7 @@ function renderServicesTable(services) {
             <td data-label="操作">${actions}</td>
             <td data-label="服务ID">#${service.id}</td>
             <td data-label="用户">${service.username || '-'}</td>
-            <td data-label="厂家">${service.supplier_name || '-'}</td>
+            <td data-label="供应商">${service.supplier_name || '-'}</td>
             <td data-label="服务内容">${service.content.length > 50 ? service.content.substring(0, 50) + '...' : service.content}</td>
             <td data-label="金额">${formatCurrency(service.amount)}</td>
             <td data-label="状态"><span class="tag-item status-tag status-${getStatusClass(service.status)}">${service.status}</span></td>
@@ -110,7 +110,7 @@ async function viewServiceDetail(serviceId) {
                 <div class="modal-richtext">
                     <p><strong>服务ID：</strong>${service.id}</p>
                     <p><strong>用户：</strong>${service.username || '-'}</p>
-                    <p><strong>厂家：</strong>${service.supplier_name || '-'}</p>
+                    <p><strong>供应商：</strong>${service.supplier_name || '-'}</p>
                     <p><strong>服务内容：</strong>${service.content}</p>
                     <p><strong>金额：</strong>${formatCurrency(service.amount)}</p>
                     <p><strong>状态：</strong>${service.status}</p>
@@ -198,15 +198,15 @@ async function openServiceModal(serviceId = null) {
         }
     }
     
-    // 厂家用户只能看到自己的厂家
-    if (currentUser.user_type === '厂家') {
+    // 供应商用户只能看到自己的供应商
+    if (currentUser.user_type === '供应商') {
         // 重新获取用户信息以确保包含 supplier_id
         try {
             const userInfo = await apiRequest('/users/me');
             if (userInfo.supplier_id) {
                 currentUser.supplier_id = userInfo.supplier_id;
             } else {
-                showMessage('厂家用户未关联厂家，无法创建服务记录', 'error');
+                showMessage('供应商用户未关联供应商，无法创建服务记录', 'error');
                 return;
             }
         } catch (error) {
@@ -215,9 +215,9 @@ async function openServiceModal(serviceId = null) {
             return;
         }
         
-        // 厂家用户使用 supplier_id，而不是 user id
+        // 供应商用户使用 supplier_id，而不是 user id
         if (!currentUser.supplier_id) {
-            showMessage('厂家用户未关联厂家，无法创建服务记录', 'error');
+            showMessage('供应商用户未关联供应商，无法创建服务记录', 'error');
             return;
         }
         try {
@@ -226,13 +226,13 @@ async function openServiceModal(serviceId = null) {
             if (supplier) {
                 suppliers = [supplier];
             } else {
-                suppliers = [{ id: currentUser.supplier_id, name: '未知厂家' }];
+                suppliers = [{ id: currentUser.supplier_id, name: '未知供应商' }];
             }
         } catch (error) {
-            suppliers = [{ id: currentUser.supplier_id, name: '未知厂家' }];
+            suppliers = [{ id: currentUser.supplier_id, name: '未知供应商' }];
         }
     } else {
-        // 加载厂家列表
+        // 加载供应商列表
         try {
             const suppliersResponse = await getSuppliers();
             suppliers = suppliersResponse;
@@ -243,7 +243,7 @@ async function openServiceModal(serviceId = null) {
         }
     }
     
-    const isSupplier = currentUser.user_type === '厂家';
+    const isSupplier = currentUser.user_type === '供应商';
     const isEdit = serviceId !== null;
     const canEdit = isSupplier && (!isEdit || service.status === '暂存');
     
@@ -251,9 +251,9 @@ async function openServiceModal(serviceId = null) {
         <form id="serviceForm">
             ${!isSupplier || isEdit ? `
                 <div class="form-group">
-                    <label><i class="fas fa-building"></i> 厂家 *</label>
+                    <label><i class="fas fa-building"></i> 供应商 *</label>
                     <select name="supplier_id" required ${isEdit ? 'disabled style="background: var(--color-surface-muted);"' : ''}>
-                        <option value="">请选择厂家</option>
+                        <option value="">请选择供应商</option>
                         ${suppliers.map(s => `
                             <option value="${s.id}" ${service && service.supplier_id === s.id ? 'selected' : ''}>
                                 ${s.name}
@@ -309,7 +309,7 @@ async function openServiceModal(serviceId = null) {
     }
 }
 
-// 加载厂家下拉框（服务记录页面）
+// 加载供应商下拉框（服务记录页面）
 async function loadServiceSuppliers() {
     try {
         const suppliers = await getSuppliers();
@@ -323,7 +323,7 @@ async function loadServiceSuppliers() {
             select.appendChild(option);
         });
     } catch (error) {
-        console.error('加载厂家列表失败:', error);
+        console.error('加载供应商列表失败:', error);
     }
 }
 
@@ -349,10 +349,10 @@ async function saveService(serviceId) {
         
         // 验证 supplier_id
         let supplierId;
-        if (currentUser.user_type === '厂家' && !serviceId) {
-            // 厂家用户创建新服务记录时，使用 currentUser.supplier_id
+        if (currentUser.user_type === '供应商' && !serviceId) {
+            // 供应商用户创建新服务记录时，使用 currentUser.supplier_id
             if (!currentUser.supplier_id) {
-                showMessage('厂家用户未关联厂家，无法创建服务记录', 'error');
+                showMessage('供应商用户未关联供应商，无法创建服务记录', 'error');
                 return;
             }
             supplierId = currentUser.supplier_id;
@@ -360,7 +360,7 @@ async function saveService(serviceId) {
             // 其他情况从表单获取
             supplierId = parseInt(formData.supplier_id);
             if (isNaN(supplierId)) {
-                showMessage('厂家ID无效', 'error');
+                showMessage('供应商ID无效', 'error');
                 return;
             }
         }
@@ -371,8 +371,8 @@ async function saveService(serviceId) {
             amount: amount,
         };
         
-        // 如果是厂家用户创建新服务记录，需要包含 user_username
-        if (currentUser.user_type === '厂家' && !serviceId) {
+        // 如果是供应商用户创建新服务记录，需要包含 user_username
+        if (currentUser.user_type === '供应商' && !serviceId) {
             if (!formData.user_username || formData.user_username.trim() === '') {
                 showMessage('请输入服务对象用户名', 'error');
                 return;

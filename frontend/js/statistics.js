@@ -55,7 +55,7 @@ function renderStatisticsTable(items, total) {
         if (items.length === 0) {
             html = '<div class="cart-item-card"><p style="text-align: center; padding: 40px; color: var(--color-muted);">暂无数据</p></div>';
         } else {
-            // 渲染各厂家数据
+            // 渲染各供应商数据
             items.forEach(item => {
                 html += `
                     <div class="cart-item-card">
@@ -155,7 +155,7 @@ function renderStatisticsTable(items, total) {
             return;
         }
 
-        // 渲染各厂家数据
+        // 渲染各供应商数据
         items.forEach(item => {
             const row = document.createElement('tr');
             row.innerHTML = `

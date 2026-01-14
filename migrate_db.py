@@ -23,6 +23,59 @@ def get_db_path():
     return None
 
 
+def migrate_user_types(conn):
+    """迁移用户类型：重命名用户类型值"""
+    logger.info("开始迁移用户类型...")
+
+    # 用户类型映射
+    type_mapping = {
+        "普通用户": "课题组用户",
+        "学生用户": "普通用户",
+        "厂家": "供应商"
+    }
+
+    # 检查是否已经迁移过（通过检查是否已有新值）
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT user_type FROM users")
+    existing_types = {row[0] for row in cursor.fetchall()}  
+    if "课题组用户" in existing_types:
+        logger.info("数据库中存在课题组用户类型，跳过迁移")
+        return
+
+    # 执行批量更新
+    for old_type, new_type in type_mapping.items():
+        cursor.execute(
+            "UPDATE users SET user_type = ? WHERE user_type = ?",
+            (new_type, old_type)
+        )
+        affected = cursor.rowcount
+        logger.info(f"  {old_type} → {new_type}: {affected} 条记录")
+
+    logger.info("用户类型迁移完成")
+
+
+def cleanup_deleted_products(conn):
+    """清理已软删除的产品数据"""
+    logger.info("开始清理软删除的产品...")
+
+    cursor = conn.cursor()
+
+    # 先统计要删除的数量
+    cursor.execute("SELECT COUNT(*) FROM products WHERE is_deleted = 1")
+    count = cursor.fetchone()[0]
+
+    if count == 0:
+        logger.info("没有需要清理的软删除产品")
+        return
+
+    logger.info(f"准备删除 {count} 条软删除的产品记录")
+
+    # 执行删除
+    cursor.execute("DELETE FROM products WHERE is_deleted = 1")
+    affected = cursor.rowcount
+    logger.info(f"已删除 {affected} 条软删除的产品记录")
+
+
 def get_table_columns(conn, table_name):
     """获取表的列信息"""
     cursor = conn.cursor()
@@ -71,7 +124,13 @@ def migrate_database():
             logger.info("添加phone列到users表")
             cursor.execute("ALTER TABLE users ADD COLUMN phone VARCHAR(20)")
             logger.info("phone列添加成功")
-        
+
+        # 迁移用户类型
+        migrate_user_types(conn)
+
+        # 清理软删除的产品
+        cleanup_deleted_products(conn)
+
         conn.commit()
         logger.info("数据库迁移完成")
         

@@ -47,7 +47,7 @@ function renderProductsTable(products) {
     tbody.innerHTML = '';
 
     if (products.length === 0) {
-        const colCount = (currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') ? 8 : 7;
+        const colCount = (currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户') ? 8 : 7;
         tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align: center; padding: 40px;">暂无数据</td></tr>`;
         return;
     }
@@ -57,12 +57,12 @@ function renderProductsTable(products) {
 
         const actions = `
             <div class="action-buttons">
-                ${currentUser.user_type !== '厂家' ? `
+                ${currentUser.user_type !== '供应商' ? `
                     <button class="action-btn btn-success" onclick="addToCart(${product.id})" title="添加到购物车">
                         <i class="fas fa-cart-plus"></i>
                     </button>
                 ` : ''}
-                ${(currentUser.user_type === '厂家' || currentUser.user_type === '管理员') ? `
+                ${(currentUser.user_type === '供应商' || currentUser.user_type === '管理员') ? `
                     <button class="action-btn" onclick="editProduct(${product.id})" title="修改">
                         <i class="fas fa-edit"></i>
                     </button>
@@ -84,9 +84,9 @@ function renderProductsTable(products) {
             <td data-label="品牌">${product.brand || '-'}</td>
             <td data-label="型号">${product.model || '-'}</td>
             <td data-label="规格">${product.specification || '-'}</td>
-            ${(currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') ? `<td data-label="内部价格">${internalPrice}</td>` : ''}
+            ${(currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户') ? `<td data-label="内部价格">${internalPrice}</td>` : ''}
             <td data-label="含税价格">${formatCurrency(product.tax_included_price)}</td>
-            <td data-label="厂家">${product.supplier_name || '-'}</td>
+            <td data-label="供应商">${product.supplier_name || '-'}</td>
         `;
 
         tbody.appendChild(row);
@@ -124,21 +124,21 @@ async function openProductModal(productId = null) {
         }
     }
     
-    // 加载厂家列表（用于下拉选择）
+    // 加载供应商列表（用于下拉选择）
     try {
         const suppliersResponse = await getSuppliers();
         suppliers = suppliersResponse;
     } catch (error) {
-        // 如果获取厂家列表失败，尝试从商品数据中获取
+        // 如果获取供应商列表失败，尝试从商品数据中获取
         if (product && product.supplier_id) {
             suppliers = [{ id: product.supplier_id, name: product.supplier_name }];
         }
     }
     
     // 构建表单HTML
-    const canViewInternal = currentUser.user_type !== '厂家';
+    const canViewInternal = currentUser.user_type !== '供应商';
     const canEditInternal = currentUser.user_type === '管理员';  // 只有管理员可以修改内部价格
-    const isSupplier = currentUser.user_type === '厂家';
+    const isSupplier = currentUser.user_type === '供应商';
     
     let formHtml = `
         <form id="productForm">
@@ -161,11 +161,11 @@ async function openProductModal(productId = null) {
     `;
     
     if (!isSupplier || !productId) {
-        // 新建商品时，厂家用户需要选择厂家；编辑时显示厂家信息
+        // 新建商品时，供应商用户需要选择供应商；编辑时显示供应商信息
         if (isSupplier) {
             formHtml += `
                 <div class="form-group">
-                    <label><i class="fas fa-building"></i> 厂家</label>
+                    <label><i class="fas fa-building"></i> 供应商</label>
                     <input type="hidden" name="supplier_id" value="${currentUser.supplier_id}">
                     <input type="text" value="${currentUser.username}" disabled style="background: var(--color-surface-muted);">
                 </div>
@@ -173,9 +173,9 @@ async function openProductModal(productId = null) {
         } else {
             formHtml += `
                 <div class="form-group">
-                    <label><i class="fas fa-building"></i> 厂家 *</label>
+                    <label><i class="fas fa-building"></i> 供应商 *</label>
                     <select name="supplier_id" required ${productId ? 'disabled style="background: var(--color-surface-muted);"' : ''}>
-                        <option value="">请选择厂家</option>
+                        <option value="">请选择供应商</option>
                         ${suppliers.map(s => `
                             <option value="${s.id}" ${product && product.supplier_id === s.id ? 'selected' : ''}>
                                 ${s.name}
@@ -190,7 +190,7 @@ async function openProductModal(productId = null) {
     }
     
     if (canViewInternal) {
-        // 只有管理员可以编辑内部价格，普通用户只能查看
+        // 只有管理员可以编辑内部价格，课题组用户只能查看
         if (canEditInternal) {
             formHtml += `
                 <div class="form-group">
@@ -200,9 +200,9 @@ async function openProductModal(productId = null) {
                 </div>
             `;
         } 
-        // 暂时不对普通用户显示
+        // 暂时不对课题组用户显示
         // else {
-        //     // 普通用户只能查看，不能编辑
+        //     // 课题组用户只能查看，不能编辑
         //     formHtml += `
         //         <div class="form-group">
         //             <label><i class="fas fa-dollar-sign"></i> 内部价格（联系管理员修改）</label>
@@ -261,8 +261,8 @@ async function saveProduct(productId) {
         supplier_id: parseInt(formData.supplier_id),
     };
     
-    // 厂家用户新建商品时，内部价格默认为含税价格
-    if (currentUser.user_type === '厂家') {
+    // 供应商用户新建商品时，内部价格默认为含税价格
+    if (currentUser.user_type === '供应商') {
         if (!productId) {
             data.internal_price = data.tax_included_price;
         }
@@ -280,7 +280,7 @@ async function saveProduct(productId) {
             data.internal_price = data.tax_included_price;
         }
     } else {
-        // 普通用户编辑时，不修改内部价格（保持原值）
+        // 课题组用户编辑时，不修改内部价格（保持原值）
         if (productId && formData.internal_price) {
             const internalPrice = parseFloat(formData.internal_price);
             if (!isNaN(internalPrice) && internalPrice >= 0) {

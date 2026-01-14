@@ -178,7 +178,7 @@ def require_admin(user: User = Depends(get_current_user)) -> User:
 
 def require_supplier(user: User = Depends(get_current_user)) -> User:
     """
-    要求厂家用户权限（依赖注入）
+    要求供应商用户权限（依赖注入）
     
     Args:
         user: 当前用户
@@ -187,17 +187,17 @@ def require_supplier(user: User = Depends(get_current_user)) -> User:
         User: 当前用户对象
         
     Raises:
-        HTTPException: 如果不是厂家用户
+        HTTPException: 如果不是供应商用户
         
     使用样例:
         @app.get("/api/supplier")
         def supplier_route(current_user: User = Depends(require_supplier)):
-            return {"message": "厂家专用"}
+            return {"message": "供应商专用"}
     """
     if user.user_type != USER_TYPE_SUPPLIER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="需要厂家用户权限"
+            detail="需要供应商用户权限"
         )
     return user
 
@@ -206,7 +206,7 @@ def can_view_internal_price(user: User) -> bool:
     """
     判断用户是否可以查看内部价格
     
-    学生用户不能查看内部价格，只有管理员和普通用户可以查看
+    普通用户不能查看内部价格，只有管理员和课题组用户可以查看
     
     Args:
         user: 用户对象

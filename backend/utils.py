@@ -131,7 +131,7 @@ def calculate_tax(total_tax_included: float, total_internal: float) -> float:
 
 def remove_internal_price_from_items(items: list) -> list:
     """
-    从订单项列表中移除内部价格字段（用于厂家用户）
+    从订单项列表中移除内部价格字段（用于供应商用户）
     
     Args:
         items: 订单项列表

@@ -12,8 +12,8 @@ class UserCreate(BaseModel):
     """创建用户请求模型"""
     username: str = Field(..., min_length=1, max_length=50, description="用户名")
     password: str = Field(..., min_length=1, description="密码")
-    user_type: str = Field(..., description="用户类型: 管理员、普通用户、厂家、学生用户")
-    manager_id: Optional[int] = Field(None, description="管理用户ID（仅学生用户需要）")
+    user_type: str = Field(..., description="用户类型: 管理员、课题组用户、供应商、普通用户")
+    manager_id: Optional[int] = Field(None, description="管理用户ID（仅普通用户需要）")
     email: Optional[str] = Field(None, max_length=100, description="邮箱")
     phone: Optional[str] = Field(None, max_length=20, description="手机号")
 
@@ -34,9 +34,9 @@ class UserResponse(BaseModel):
     id: int
     username: str
     user_type: str
-    supplier_id: Optional[int] = None  # 厂家用户关联的supplier_id
-    manager_id: Optional[int] = None  # 学生用户关联的管理用户ID
-    manager_username: Optional[str] = None  # 管理用户名称（仅学生用户）
+    supplier_id: Optional[int] = None  # 供应商用户关联的supplier_id
+    manager_id: Optional[int] = None  # 普通用户关联的管理用户ID
+    manager_username: Optional[str] = None  # 管理用户名称（仅普通用户）
     email: Optional[str] = None  # 邮箱
     phone: Optional[str] = None  # 手机号
     created_at: datetime
@@ -58,22 +58,22 @@ class LoginResponse(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    """注册请求模型（学生用户自助注册）"""
+    """注册请求模型（普通用户自助注册）"""
     username: str = Field(..., min_length=1, max_length=50, description="用户名")
     password: str = Field(..., min_length=1, description="密码")
-    manager_username: str = Field(..., description="管理用户名称（普通用户）")
+    manager_username: str = Field(..., description="管理用户名称（课题组用户）")
     email: Optional[str] = Field(None, max_length=100, description="邮箱")
     phone: Optional[str] = Field(None, max_length=20, description="手机号")
 
 
-# 厂家相关
+# 供应商相关
 class SupplierCreate(BaseModel):
-    """创建厂家请求模型"""
-    name: str = Field(..., min_length=1, max_length=100, description="厂家名称")
+    """创建供应商请求模型"""
+    name: str = Field(..., min_length=1, max_length=100, description="供应商名称")
 
 
 class SupplierResponse(BaseModel):
-    """厂家响应模型"""
+    """供应商响应模型"""
     id: int
     name: str
     created_at: datetime
@@ -90,7 +90,7 @@ class ProductCreate(BaseModel):
     specification: Optional[str] = Field(None, max_length=500, description="规格")
     internal_price: Optional[float] = Field(None, ge=0, description="内部价格")
     tax_included_price: float = Field(..., ge=0, description="含税价格")
-    supplier_id: int = Field(..., description="厂家ID")
+    supplier_id: int = Field(..., description="供应商ID")
 
 
 class ProductUpdate(BaseModel):
@@ -110,7 +110,7 @@ class ProductResponse(BaseModel):
     brand: Optional[str]
     model: Optional[str]
     specification: Optional[str]
-    internal_price: Optional[float]  # 厂家用户看不到此字段
+    internal_price: Optional[float]  # 供应商用户看不到此字段
     tax_included_price: float
     supplier_id: int
     supplier_name: Optional[str] = None
@@ -155,7 +155,7 @@ class OrderItem(BaseModel):
 
 class OrderCreate(BaseModel):
     """创建订单请求模型"""
-    supplier_id: int = Field(..., description="厂家ID")
+    supplier_id: int = Field(..., description="供应商ID")
     items: List[OrderItem] = Field(..., min_length=1, description="订单项列表")
 
 
@@ -211,10 +211,10 @@ class OrderFilter(BaseModel):
 # 服务记录相关
 class ServiceRecordCreate(BaseModel):
     """创建服务记录请求模型"""
-    supplier_id: int = Field(..., description="厂家ID")
+    supplier_id: int = Field(..., description="供应商ID")
     content: str = Field(..., min_length=1, description="服务内容")
     amount: float = Field(..., ge=0, description="金额")
-    user_username: Optional[str] = Field(None, description="关联的用户名（普通用户或管理员），厂家创建服务记录时必须提供")
+    user_username: Optional[str] = Field(None, description="关联的用户名（课题组用户或管理员），供应商创建服务记录时必须提供")
 
 
 class ServiceRecordUpdate(BaseModel):

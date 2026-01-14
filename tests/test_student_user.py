@@ -1,5 +1,5 @@
 """
-学生用户功能测试
+普通用户功能测试
 """
 
 import pytest
@@ -18,7 +18,7 @@ def setup_db():
     init_db()
     db = SessionLocal()
     try:
-        # 创建普通用户（作为管理用户）
+        # 创建课题组用户（作为管理用户）
         normal_user = db.query(User).filter(User.username == "normal_user").first()
         if not normal_user:
             normal_user = User(
@@ -30,7 +30,7 @@ def setup_db():
             db.commit()
             db.refresh(normal_user)
         
-        # 创建学生用户
+        # 创建普通用户
         student_user = db.query(User).filter(User.username == "student_user").first()
         if not student_user:
             student_user = User(
@@ -47,7 +47,7 @@ def setup_db():
     # 测试后清理（可选）
 
 def test_register_student_success():
-    """测试学生用户注册成功"""
+    """测试普通用户注册成功"""
     response = client.post(
         "/api/users/register",
         json={
@@ -63,7 +63,7 @@ def test_register_student_success():
     assert data["user"]["manager_username"] == "normal_user"
 
 def test_register_student_invalid_manager():
-    """测试学生用户注册时管理用户不存在"""
+    """测试普通用户注册时管理用户不存在"""
     response = client.post(
         "/api/users/register",
         json={
@@ -75,7 +75,7 @@ def test_register_student_invalid_manager():
     assert response.status_code == 404
 
 def test_register_student_manager_not_normal():
-    """测试学生用户注册时管理用户不是普通用户"""
+    """测试普通用户注册时管理用户不是课题组用户"""
     # 先创建管理员用户
     db = SessionLocal()
     try:
@@ -102,8 +102,8 @@ def test_register_student_manager_not_normal():
     assert response.status_code == 400
 
 def test_student_cannot_view_internal_price():
-    """测试学生用户不能查看内部价格"""
-    # 登录学生用户
+    """测试普通用户不能查看内部价格"""
+    # 登录普通用户
     login_response = client.post(
         "/api/users/login",
         json={"username": "student_user", "password": "studentpass"}
@@ -119,8 +119,8 @@ def test_student_cannot_view_internal_price():
     assert user_data["manager_id"] is not None
 
 def test_normal_user_can_view_managed_students_orders():
-    """测试普通用户可以查看管理学生的订单"""
-    # 登录普通用户
+    """测试课题组用户可以查看管理学生的订单"""
+    # 登录课题组用户
     login_response = client.post(
         "/api/users/login",
         json={"username": "normal_user", "password": "normalpass"}
@@ -133,8 +133,8 @@ def test_normal_user_can_view_managed_students_orders():
     assert orders_response.status_code == 200
 
 def test_student_cannot_view_statistics():
-    """测试学生用户不能查看统计信息"""
-    # 登录学生用户
+    """测试普通用户不能查看统计信息"""
+    # 登录普通用户
     login_response = client.post(
         "/api/users/login",
         json={"username": "student_user", "password": "studentpass"}

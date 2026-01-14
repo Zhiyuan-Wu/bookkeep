@@ -160,7 +160,7 @@ async def register(
     db: Session = Depends(get_db)
 ):
     """
-    学生用户自助注册
+    普通用户自助注册
     
     Args:
         register_data: 注册信息（用户名、密码、管理用户名称）
@@ -200,14 +200,14 @@ async def register(
     # 查找管理用户
     manager = db.query(User).filter(User.username == register_data.manager_username).first()
     
-    # 验证管理用户类型：必须是普通用户
+    # 验证管理用户类型：必须是课题组用户
     if not manager or manager.user_type != USER_TYPE_NORMAL:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="请咨询管理员并输入正确的管理用户名称"
         )
     
-    # 创建学生用户
+    # 创建普通用户
     new_user = User(
         username=register_data.username,
         password_hash=hash_password(register_data.password),
@@ -233,7 +233,7 @@ async def register(
     )
     
     logger.info(
-        f"学生用户注册成功: {new_user.username} (管理用户: {manager.username})",
+        f"普通用户注册成功: {new_user.username} (管理用户: {manager.username})",
         extra={
             "user_id": new_user.id,
             "manager_id": manager.id,
@@ -279,7 +279,7 @@ async def get_current_user_info(
     使用样例:
         GET /api/users/me
     """
-    # 如果是学生用户，加载管理用户信息
+    # 如果是普通用户，加载管理用户信息
     manager_username = None
     if current_user.manager_id:
         manager = db.query(User).filter(User.id == current_user.manager_id).first()
@@ -364,7 +364,7 @@ async def create_user(
         {
             "username": "newuser",
             "password": "password123",
-            "user_type": "普通用户"
+            "user_type": "课题组用户"
         }
     """
     # 检查用户名是否已存在
@@ -383,7 +383,7 @@ async def create_user(
             detail=f"无效的用户类型，必须是: {', '.join(valid_types)}"
         )
 
-    # 厂家用户自动创建厂家
+    # 供应商用户自动创建供应商
     if user_data.user_type == USER_TYPE_SUPPLIER:
         supplier = Supplier(name=user_data.username)
         db.add(supplier)
@@ -392,15 +392,15 @@ async def create_user(
     else:
         supplier_id = None
     
-    # 学生用户需要管理用户
+    # 普通用户需要管理用户
     manager_id = None
     if user_data.user_type == USER_TYPE_STUDENT:
         if not user_data.manager_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="学生用户必须指定管理用户ID"
+                detail="普通用户必须指定管理用户ID"
             )
-        # 验证管理用户是否存在且是普通用户
+        # 验证管理用户是否存在且是课题组用户
         manager = db.query(User).filter(User.id == user_data.manager_id).first()
         if not manager:
             raise HTTPException(
@@ -410,7 +410,7 @@ async def create_user(
         if manager.user_type != USER_TYPE_NORMAL:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="管理用户必须是普通用户类型"
+                detail="管理用户必须是课题组用户类型"
             )
         manager_id = user_data.manager_id
     
@@ -625,8 +625,8 @@ async def delete_user(
     
     # 删除关联的商品（软删除）
     # 注意：Product.supplier_id指向suppliers表，不是users表
-    # 如果用户是厂家，需要先找到对应的supplier，然后删除该supplier的商品
-    if user.user_type == "厂家" and user.supplier_id:
+    # 如果用户是供应商，需要先找到对应的supplier，然后删除该supplier的商品
+    if user.user_type == "供应商" and user.supplier_id:
         products = db.query(Product).filter(Product.supplier_id == user.supplier_id).all()
         for product in products:
             product.is_deleted = True

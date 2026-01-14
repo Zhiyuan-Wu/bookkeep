@@ -28,12 +28,12 @@ function initUI() {
     document.getElementById('userAvatar').textContent = currentUser.username.charAt(0).toUpperCase();
     
     // 根据用户类型显示/隐藏功能
-    if (currentUser.user_type === '厂家') {
+    if (currentUser.user_type === '供应商') {
         document.getElementById('cartBtn').style.display = 'none';
         document.getElementById('statisticsNav').style.display = 'none';
-    } else if (currentUser.user_type === '学生用户') {
+    } else if (currentUser.user_type === '普通用户') {
         document.getElementById('cartBtn').style.display = 'inline-flex';
-        document.getElementById('statisticsNav').style.display = 'none';  // 学生用户不能查看统计信息
+        document.getElementById('statisticsNav').style.display = 'none';  // 普通用户不能查看统计信息
     } else {
         document.getElementById('cartBtn').style.display = 'inline-flex';
         document.getElementById('statisticsNav').style.display = 'flex';
@@ -45,12 +45,12 @@ function initUI() {
     });
     
     // 商品管理按钮
-    if (currentUser.user_type === '管理员' || currentUser.user_type === '厂家') {
+    if (currentUser.user_type === '管理员' || currentUser.user_type === '供应商') {
         document.getElementById('productsActions').style.display = 'flex';
     }
     
     // 服务记录按钮
-    if (currentUser.user_type === '厂家') {
+    if (currentUser.user_type === '供应商') {
         document.getElementById('servicesActions').style.display = 'flex';
     }
     
@@ -60,15 +60,15 @@ function initUI() {
         loadUsers();
     }
     
-    // 内部价格列（厂家用户和学生用户不显示）
-    if (currentUser.user_type === '厂家' || currentUser.user_type === '学生用户') {
+    // 内部价格列（供应商用户和普通用户不显示）
+    if (currentUser.user_type === '供应商' || currentUser.user_type === '普通用户') {
         document.getElementById('internalPriceHeader').style.display = 'none';
     } else {
         document.getElementById('internalPriceHeader').style.display = 'table-cell';
     }
     
-    // 学生用户不能查看统计信息
-    if (currentUser.user_type === '学生用户') {
+    // 普通用户不能查看统计信息
+    if (currentUser.user_type === '普通用户') {
         document.getElementById('statisticsNav').style.display = 'none';
     }
 }

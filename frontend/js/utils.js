@@ -234,8 +234,8 @@ window.exportToExcel = function exportToExcel(data, columns, filename) {
 }
 
 /**
- * 获取厂家列表（带缓存）
- * @returns {Promise<Array>} 厂家列表
+ * 获取供应商列表（带缓存）
+ * @returns {Promise<Array>} 供应商列表
  */
 window.getSuppliers = async function getSuppliers() {
     // 检查缓存是否存在且未过期
@@ -252,10 +252,10 @@ window.getSuppliers = async function getSuppliers() {
         cache.suppliersTimestamp = now;
         return suppliers;
     } catch (error) {
-        console.error('获取厂家列表失败:', error);
+        console.error('获取供应商列表失败:', error);
         // 如果API请求失败，但缓存存在，返回缓存数据
         if (cache.suppliers) {
-            console.log('使用缓存的厂家列表');
+            console.log('使用缓存的供应商列表');
             return cache.suppliers;
         }
         // 如果没有缓存，抛出错误
@@ -264,7 +264,7 @@ window.getSuppliers = async function getSuppliers() {
 }
 
 /**
- * 刷新厂家列表缓存
+ * 刷新供应商列表缓存
  */
 window.refreshSuppliersCache = function refreshSuppliersCache() {
     cache.suppliers = null;

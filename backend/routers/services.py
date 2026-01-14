@@ -27,7 +27,7 @@ router = APIRouter(prefix="/api/services", tags=["services"])
 
 @router.get("/", response_model=ServiceRecordListResponse)
 async def list_services(
-    supplier_id: Optional[int] = Query(None, description="厂家ID筛选"),
+    supplier_id: Optional[int] = Query(None, description="供应商ID筛选"),
     content: Optional[str] = Query(None, description="服务内容筛选"),
     min_amount: Optional[float] = Query(None, ge=0, description="最低金额"),
     max_amount: Optional[float] = Query(None, ge=0, description="最高金额"),
@@ -43,7 +43,7 @@ async def list_services(
     获取服务记录列表（支持筛选和分页）
     
     Args:
-        supplier_id: 厂家ID筛选
+        supplier_id: 供应商ID筛选
         content: 服务内容筛选
         min_amount: 最低金额
         max_amount: 最高金额
@@ -69,9 +69,9 @@ async def list_services(
         # 管理员可以看到所有服务记录
         pass
     elif current_user.user_type == USER_TYPE_NORMAL:
-        # 普通用户可以看到自己的服务记录以及其管理学生的服务记录，且不能看到暂存状态的服务记录
+        # 课题组用户可以看到自己的服务记录以及其管理学生的服务记录，且不能看到暂存状态的服务记录
         from sqlalchemy import or_
-        # 查询管理的学生用户ID列表
+        # 查询管理的普通用户ID列表
         managed_students = db.query(User.id).filter(User.manager_id == current_user.id).all()
         managed_student_ids = [s[0] for s in managed_students]
         # 自己的服务记录 + 管理学生的服务记录
@@ -87,13 +87,13 @@ async def list_services(
 
         query = query.filter(ServiceRecord.status != SERVICE_STATUS_DRAFT)
     elif current_user.user_type == USER_TYPE_STUDENT:
-        # 学生用户只能看到自己的服务记录
+        # 普通用户只能看到自己的服务记录
         query = query.filter(ServiceRecord.user_id == current_user.id)
         query = query.filter(ServiceRecord.status != SERVICE_STATUS_DRAFT)
     elif current_user.user_type == USER_TYPE_SUPPLIER:
-        # 厂家用户只能看到自己的服务记录
+        # 供应商用户只能看到自己的服务记录
         if not current_user.supplier_id:
-            # 如果厂家用户没有关联的supplier_id，返回空结果
+            # 如果供应商用户没有关联的supplier_id，返回空结果
             query = query.filter(ServiceRecord.id == -1)  # 永远不匹配的条件
         else:
             query = query.filter(ServiceRecord.supplier_id == current_user.supplier_id)
@@ -129,7 +129,7 @@ async def list_services(
     offset = (page - 1) * page_size
     services = query.order_by(ServiceRecord.created_at.desc()).offset(offset).limit(page_size).all()
     
-    # 加载关联的厂家信息
+    # 加载关联的供应商信息
     for service in services:
         if not service.supplier:
             service.supplier = db.query(Supplier).filter(Supplier.id == service.supplier_id).first()
@@ -191,7 +191,7 @@ async def get_service_detail(
     
     # 权限控制
     if current_user.user_type == USER_TYPE_NORMAL:
-        # 普通用户可以访问自己的服务记录以及其管理学生的服务记录
+        # 课题组用户可以访问自己的服务记录以及其管理学生的服务记录
         if service.user_id != current_user.id:
             # 检查是否是管理的学生
             student = db.query(User).filter(
@@ -204,7 +204,7 @@ async def get_service_detail(
                     detail="无权访问此服务记录"
                 )
     elif current_user.user_type == USER_TYPE_STUDENT:
-        # 学生用户只能访问自己的服务记录
+        # 普通用户只能访问自己的服务记录
         if service.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -217,7 +217,7 @@ async def get_service_detail(
                 detail="无权访问此服务记录"
             )
     
-    # 加载厂家信息
+    # 加载供应商信息
     if not service.supplier:
         service.supplier = db.query(Supplier).filter(Supplier.id == service.supplier_id).first()
     
@@ -245,21 +245,21 @@ async def create_service(
     db: Session = Depends(get_db)
 ):
     """
-    创建服务记录（厂家用户）
+    创建服务记录（供应商用户）
     
-    厂家创建服务记录时，需要指定关联的普通用户或管理员用户名。
-    语义：厂家向对应用户提供了服务。
+    供应商创建服务记录时，需要指定关联的课题组用户或管理员用户名。
+    语义：供应商向对应用户提供了服务。
     
     Args:
         service_data: 服务记录创建信息（包含 supplier_id, content, amount, user_username）
-        current_user: 当前登录用户（必须是厂家用户）
+        current_user: 当前登录用户（必须是供应商用户）
         db: 数据库会话
         
     Returns:
         ServiceRecordResponse: 创建的服务记录信息
         
     Raises:
-        HTTPException: 如果用户类型不允许、厂家ID无效、用户名不存在或用户类型不正确
+        HTTPException: 如果用户类型不允许、供应商ID无效、用户名不存在或用户类型不正确
         
     使用样例:
         POST /api/services/
@@ -267,36 +267,36 @@ async def create_service(
             "supplier_id": 1,
             "content": "服务内容",
             "amount": 1000.0,
-            "user_username": "普通用户1"
+            "user_username": "课题组用户1"
         }
     """
-    # 只有厂家用户可以创建服务记录
+    # 只有供应商用户可以创建服务记录
     if current_user.user_type != USER_TYPE_SUPPLIER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="只有厂家用户可以创建服务记录"
+            detail="只有供应商用户可以创建服务记录"
         )
     
-    # 厂家用户只能为自己创建服务记录
+    # 供应商用户只能为自己创建服务记录
     if not current_user.supplier_id or service_data.supplier_id != current_user.supplier_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="只能为自己创建服务记录"
         )
     
-    # 验证厂家是否存在
+    # 验证供应商是否存在
     supplier = db.query(Supplier).filter(Supplier.id == service_data.supplier_id).first()
     if not supplier:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="厂家不存在"
+            detail="供应商不存在"
         )
     
-    # 厂家创建服务记录时，必须提供关联的用户名（普通用户或管理员）
+    # 供应商创建服务记录时，必须提供关联的用户名（课题组用户或管理员）
     if not service_data.user_username:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="必须提供关联的用户名（普通用户或管理员）"
+            detail="必须提供关联的用户名（课题组用户或管理员）"
         )
     
     # 查找关联的用户
@@ -307,17 +307,17 @@ async def create_service(
             detail=f"用户 '{service_data.user_username}' 不存在"
         )
     
-    # 验证用户类型：必须是普通用户或管理员，不能是厂家
+    # 验证用户类型：必须是课题组用户或管理员，不能是供应商
     if target_user.user_type == USER_TYPE_SUPPLIER:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="服务记录只能关联到普通用户或管理员，不能关联到厂家用户"
+            detail="服务记录只能关联到课题组用户或管理员，不能关联到供应商用户"
         )
     
     # 创建服务记录（暂存状态）
-    # 厂家向对应用户提供服务，将服务记录关联到该用户
+    # 供应商向对应用户提供服务，将服务记录关联到该用户
     new_service = ServiceRecord(
-        user_id=target_user.id,  # 关联到普通用户或管理员
+        user_id=target_user.id,  # 关联到课题组用户或管理员
         supplier_id=service_data.supplier_id,
         content=service_data.content,
         amount=service_data.amount,
@@ -329,7 +329,7 @@ async def create_service(
     new_service.supplier = supplier
     
     logger.info(
-        f"厂家用户创建服务记录: 服务ID={new_service.id}, 厂家ID={supplier.id}, 关联用户={target_user.username}",
+        f"供应商用户创建服务记录: 服务ID={new_service.id}, 供应商ID={supplier.id}, 关联用户={target_user.username}",
         extra={
             "service_id": new_service.id,
             "supplier_id": supplier.id,
@@ -360,7 +360,7 @@ async def update_service(
     db: Session = Depends(get_db)
 ):
     """
-    更新服务记录（厂家用户）
+    更新服务记录（供应商用户）
     
     Args:
         service_id: 服务记录ID
@@ -388,11 +388,11 @@ async def update_service(
             detail="服务记录不存在"
         )
     
-    # 只有厂家用户可以更新自己的服务记录
+    # 只有供应商用户可以更新自己的服务记录
     if current_user.user_type != USER_TYPE_SUPPLIER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="只有厂家用户可以更新服务记录"
+            detail="只有供应商用户可以更新服务记录"
         )
     
     if not current_user.supplier_id or service.supplier_id != current_user.supplier_id:
@@ -445,7 +445,7 @@ async def update_service_status(
     db: Session = Depends(get_db)
 ):
     """
-    更新服务记录状态（普通用户和管理员可以确认）
+    更新服务记录状态（课题组用户和管理员可以确认）
     
     Args:
         service_id: 服务记录ID
@@ -471,7 +471,7 @@ async def update_service_status(
     
     # 权限控制
     if current_user.user_type == USER_TYPE_NORMAL:
-        # 普通用户可以操作自己的服务记录以及其管理学生的服务记录
+        # 课题组用户可以操作自己的服务记录以及其管理学生的服务记录
         # 检查是否有权限操作此服务记录
         has_permission = (service.user_id == current_user.id)
         if not has_permission:
@@ -495,15 +495,15 @@ async def update_service_status(
                     detail="只能确认处于发起状态的服务记录"
                 )
         elif new_status == SERVICE_STATUS_INVALID:
-            # 普通用户可以删除服务记录（转为无效）
+            # 课题组用户可以删除服务记录（转为无效）
             pass
         else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="普通用户只能确认或删除服务记录"
+                detail="课题组用户只能确认或删除服务记录"
             )
     elif current_user.user_type == USER_TYPE_STUDENT:
-        # 学生用户可以操作自己的服务记录
+        # 普通用户可以操作自己的服务记录
         if service.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -516,15 +516,15 @@ async def update_service_status(
                     detail="只能确认处于发起状态的服务记录"
                 )
         elif new_status == SERVICE_STATUS_INVALID:
-            # 学生用户可以删除服务记录（转为无效）
+            # 普通用户可以删除服务记录（转为无效）
             pass
         else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="学生用户只能确认或删除服务记录"
+                detail="普通用户只能确认或删除服务记录"
             )
     elif current_user.user_type == USER_TYPE_SUPPLIER:
-        # 厂家用户只能发起自己的服务记录
+        # 供应商用户只能发起自己的服务记录
         if new_status == SERVICE_STATUS_SUBMITTED:
             if service.status != SERVICE_STATUS_DRAFT:
                 raise HTTPException(
@@ -537,7 +537,7 @@ async def update_service_status(
                     detail="无权操作此服务记录"
                 )
         elif new_status == SERVICE_STATUS_INVALID:
-            # 厂家用户可以删除服务记录（转为无效）
+            # 供应商用户可以删除服务记录（转为无效）
             if not current_user.supplier_id or service.supplier_id != current_user.supplier_id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -546,7 +546,7 @@ async def update_service_status(
         else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="厂家用户只能发起或删除服务记录"
+                detail="供应商用户只能发起或删除服务记录"
             )
     # 管理员可以执行任何状态转换
     
@@ -582,7 +582,7 @@ async def update_service_status(
                 service_amount=service.amount
             )
     elif new_status == SERVICE_STATUS_CONFIRMED:
-        # 确认服务记录：向厂家用户发送通知
+        # 确认服务记录：向供应商用户发送通知
         if service.supplier and service.supplier.user and service.supplier.user.email:
             await send_service_notification(
                 to_email=service.supplier.user.email,
@@ -614,7 +614,7 @@ async def delete_service(
     db: Session = Depends(get_db)
 ):
     """
-    删除服务记录（普通用户、学生用户和管理员）
+    删除服务记录（课题组用户、普通用户和管理员）
     暂存和发起状态的服务可以直接删除，确认状态的服务删除后将转移到无效状态
     
     Args:
@@ -640,7 +640,7 @@ async def delete_service(
     
     # 权限控制
     if current_user.user_type == USER_TYPE_NORMAL:
-        # 普通用户可以删除自己的服务记录以及其管理学生的服务记录
+        # 课题组用户可以删除自己的服务记录以及其管理学生的服务记录
         if service.user_id != current_user.id:
             # 检查是否是管理的学生
             student = db.query(User).filter(
@@ -653,7 +653,7 @@ async def delete_service(
                     detail="无权删除此服务记录"
                 )
     elif current_user.user_type == USER_TYPE_STUDENT:
-        # 学生用户只能删除自己的服务记录
+        # 普通用户只能删除自己的服务记录
         if service.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

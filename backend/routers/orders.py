@@ -34,7 +34,7 @@ router = APIRouter(prefix="/api/orders", tags=["orders"])
 
 @router.get("/", response_model=OrderListResponse)
 async def list_orders(
-    supplier_id: Optional[int] = Query(None, description="厂家ID筛选"),
+    supplier_id: Optional[int] = Query(None, description="供应商ID筛选"),
     content: Optional[str] = Query(None, description="订单内容筛选"),
     min_amount: Optional[float] = Query(None, ge=0, description="最低金额"),
     max_amount: Optional[float] = Query(None, ge=0, description="最高金额"),
@@ -50,7 +50,7 @@ async def list_orders(
     获取订单列表（支持筛选和分页）
     
     Args:
-        supplier_id: 厂家ID筛选
+        supplier_id: 供应商ID筛选
         content: 订单内容筛选
         min_amount: 最低金额
         max_amount: 最高金额
@@ -76,9 +76,9 @@ async def list_orders(
         # 管理员可以看到所有订单
         pass
     elif current_user.user_type == USER_TYPE_NORMAL:
-        # 普通用户可以看到自己的订单以及其管理学生的订单
+        # 课题组用户可以看到自己的订单以及其管理学生的订单
         from sqlalchemy import or_
-        # 查询管理的学生用户ID列表
+        # 查询管理的普通用户ID列表
         managed_students = db.query(User.id).filter(User.manager_id == current_user.id).all()
         managed_student_ids = [s[0] for s in managed_students]
         # 自己的订单 + 管理学生的订单
@@ -92,12 +92,12 @@ async def list_orders(
         else:
             query = query.filter(Order.user_id == current_user.id)
     elif current_user.user_type == USER_TYPE_STUDENT:
-        # 学生用户只能看到自己的订单
+        # 普通用户只能看到自己的订单
         query = query.filter(Order.user_id == current_user.id)
     elif current_user.user_type == USER_TYPE_SUPPLIER:
-        # 厂家用户只能看到自己的订单，且看不到暂存状态的订单
+        # 供应商用户只能看到自己的订单，且看不到暂存状态的订单
         if not current_user.supplier_id:
-            # 如果厂家用户没有关联的supplier_id，返回空结果
+            # 如果供应商用户没有关联的supplier_id，返回空结果
             query = query.filter(Order.id == -1)  # 永远不匹配的条件
         else:
             query = query.filter(
@@ -132,7 +132,7 @@ async def list_orders(
     offset = (page - 1) * page_size
     orders = query.order_by(Order.created_at.desc()).offset(offset).limit(page_size).all()
     
-    # 加载关联的厂家信息
+    # 加载关联的供应商信息
     for order in orders:
         if not order.supplier:
             order.supplier = db.query(Supplier).filter(Supplier.id == order.supplier_id).first()
@@ -219,7 +219,7 @@ async def get_order_detail(
     
     # 权限控制
     if current_user.user_type == USER_TYPE_NORMAL:
-        # 普通用户可以访问自己的订单以及其管理学生的订单
+        # 课题组用户可以访问自己的订单以及其管理学生的订单
         if order.user_id != current_user.id:
             # 检查是否是管理的学生
             student = db.query(User).filter(
@@ -232,7 +232,7 @@ async def get_order_detail(
                     detail="无权访问此订单"
                 )
     elif current_user.user_type == USER_TYPE_STUDENT:
-        # 学生用户只能访问自己的订单
+        # 普通用户只能访问自己的订单
         if order.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -245,7 +245,7 @@ async def get_order_detail(
                 detail="无权访问此订单"
             )
     
-    # 加载厂家信息
+    # 加载供应商信息
     if not order.supplier:
         order.supplier = db.query(Supplier).filter(Supplier.id == order.supplier_id).first()
     
@@ -257,7 +257,7 @@ async def get_order_detail(
     items = parse_order_content(order.content)
     can_view_internal = can_view_internal_price(current_user)
     
-    # 厂家用户不能看到内部价格
+    # 供应商用户不能看到内部价格
     if not can_view_internal:
         items = remove_internal_price_from_items(items)
     
@@ -285,7 +285,7 @@ async def create_order(
     db: Session = Depends(get_db)
 ):
     """
-    创建订单（普通用户）
+    创建订单（课题组用户）
     
     Args:
         order_data: 订单创建信息
@@ -296,7 +296,7 @@ async def create_order(
         OrderResponse: 创建的订单信息
         
     Raises:
-        HTTPException: 如果用户类型不允许或厂家不存在
+        HTTPException: 如果用户类型不允许或供应商不存在
         
     使用样例:
         POST /api/orders/
@@ -312,19 +312,19 @@ async def create_order(
             ]
         }
     """
-    # 只有普通用户、学生用户和管理员可以创建订单
+    # 只有课题组用户、普通用户和管理员可以创建订单
     if current_user.user_type == USER_TYPE_SUPPLIER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="厂家用户不能创建订单"
+            detail="供应商用户不能创建订单"
         )
     
-    # 验证厂家是否存在
+    # 验证供应商是否存在
     supplier = db.query(Supplier).filter(Supplier.id == order_data.supplier_id).first()
     if not supplier:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="厂家不存在"
+            detail="供应商不存在"
         )
     
     # 从数据库重新查询所有商品的价格（不接受客户端传入的内部价格）
@@ -409,11 +409,11 @@ async def update_order_status(
     
     # 权限控制
     if current_user.user_type == USER_TYPE_SUPPLIER:
-        # 厂家用户只能确认订单
+        # 供应商用户只能确认订单
         if new_status != ORDER_STATUS_CONFIRMED:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="厂家用户只能确认订单"
+                detail="供应商用户只能确认订单"
             )
         if order.status != ORDER_STATUS_SUBMITTED:
             raise HTTPException(
@@ -426,7 +426,7 @@ async def update_order_status(
                 detail="无权操作此订单"
             )
     elif current_user.user_type == USER_TYPE_NORMAL:
-        # 普通用户可以操作自己的订单以及其管理学生的订单
+        # 课题组用户可以操作自己的订单以及其管理学生的订单
         # 检查是否有权限操作此订单
         has_permission = (order.user_id == current_user.id)
         if not has_permission:
@@ -450,15 +450,15 @@ async def update_order_status(
                     detail="只能发起处于暂存状态的订单"
                 )
         elif new_status == ORDER_STATUS_INVALID:
-            # 普通用户可以删除订单（转为无效）
+            # 课题组用户可以删除订单（转为无效）
             pass
         else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="普通用户只能发起或删除订单"
+                detail="课题组用户只能发起或删除订单"
             )
     elif current_user.user_type == USER_TYPE_STUDENT:
-        # 学生用户只能操作自己的订单
+        # 普通用户只能操作自己的订单
         if order.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -471,12 +471,12 @@ async def update_order_status(
                     detail="只能发起处于暂存状态的订单"
                 )
         elif new_status == ORDER_STATUS_INVALID:
-            # 学生用户可以删除订单（转为无效）
+            # 普通用户可以删除订单（转为无效）
             pass
         else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="学生用户只能发起或删除订单"
+                detail="普通用户只能发起或删除订单"
             )
     # 管理员可以执行任何状态转换
     
@@ -500,7 +500,7 @@ async def update_order_status(
     
     # 发送邮件通知
     if new_status == ORDER_STATUS_SUBMITTED:
-        # 发起订单：向厂家用户发送通知
+        # 发起订单：向供应商用户发送通知
         if order.supplier and order.supplier.user and order.supplier.user.email:
             items = parse_order_content(order.content)
             items_summary = ", ".join([f"{item.get('name', '')} x{item.get('quantity', 1)}" for item in items[:3]])
@@ -550,7 +550,7 @@ async def delete_order(
     db: Session = Depends(get_db)
 ):
     """
-    删除订单（普通用户和管理员）
+    删除订单（课题组用户和管理员）
     暂存和发起状态的订单可以直接删除，确认状态的订单删除后将转移到无效状态
     
     Args:
@@ -570,7 +570,7 @@ async def delete_order(
     if current_user.user_type == USER_TYPE_SUPPLIER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="厂家用户不能删除订单"
+            detail="供应商用户不能删除订单"
         )
     
     order = db.query(Order).filter(Order.id == order_id).first()
@@ -582,7 +582,7 @@ async def delete_order(
     
     # 权限控制
     if current_user.user_type == USER_TYPE_NORMAL:
-        # 普通用户可以删除自己的订单以及其管理学生的订单
+        # 课题组用户可以删除自己的订单以及其管理学生的订单
         if order.user_id != current_user.id:
             # 检查是否是管理的学生
             student = db.query(User).filter(
@@ -595,7 +595,7 @@ async def delete_order(
                     detail="无权删除此订单"
                 )
     elif current_user.user_type == USER_TYPE_STUDENT:
-        # 学生用户只能删除自己的订单
+        # 普通用户只能删除自己的订单
         if order.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -653,7 +653,7 @@ async def export_order_excel(
         
         # 权限控制
         if current_user.user_type == USER_TYPE_NORMAL:
-            # 普通用户可以访问自己的订单以及其管理学生的订单
+            # 课题组用户可以访问自己的订单以及其管理学生的订单
             if order.user_id != current_user.id:
                 # 检查是否是管理的学生
                 student = db.query(User).filter(
@@ -666,7 +666,7 @@ async def export_order_excel(
                         detail="无权访问此订单"
                     )
         elif current_user.user_type == USER_TYPE_STUDENT:
-            # 学生用户只能访问自己的订单
+            # 普通用户只能访问自己的订单
             if order.user_id != current_user.id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -679,7 +679,7 @@ async def export_order_excel(
                     detail="无权访问此订单"
                 )
         
-        # 加载厂家信息
+        # 加载供应商信息
         if not order.supplier:
             order.supplier = db.query(Supplier).filter(Supplier.id == order.supplier_id).first()
         
@@ -687,7 +687,7 @@ async def export_order_excel(
         items = parse_order_content(order.content)
         can_view_internal = can_view_internal_price(current_user)
         
-        # 厂家用户不能看到内部价格
+        # 供应商用户不能看到内部价格
         if not can_view_internal:
             items = remove_internal_price_from_items(items)
         

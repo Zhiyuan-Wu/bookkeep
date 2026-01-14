@@ -18,10 +18,10 @@ def setup_db():
     init_db()
     db = SessionLocal()
     try:
-        # 创建测试厂家（先创建厂家，因为supplier_id是外键）
-        existing_supplier = db.query(Supplier).filter(Supplier.name == "测试厂家订单").first()
+        # 创建测试供应商（先创建供应商，因为supplier_id是外键）
+        existing_supplier = db.query(Supplier).filter(Supplier.name == "测试供应商订单").first()
         if not existing_supplier:
-            supplier = Supplier(name="测试厂家订单")
+            supplier = Supplier(name="测试供应商订单")
             db.add(supplier)
             db.flush()  # 获取supplier.id
         
@@ -42,9 +42,9 @@ def setup_db():
             db.add(normal_user)
         if not db.query(User).filter(User.username == "testsupplier_order").first():
             # 获取或创建supplier
-            supplier = db.query(Supplier).filter(Supplier.name == "测试厂家订单").first()
+            supplier = db.query(Supplier).filter(Supplier.name == "测试供应商订单").first()
             if not supplier:
-                supplier = Supplier(name="测试厂家订单")
+                supplier = Supplier(name="测试供应商订单")
                 db.add(supplier)
                 db.flush()
             supplier_user = User(
@@ -147,7 +147,7 @@ def test_update_order_status():
     # 获取supplier的ID
     db = SessionLocal()
     try:
-        supplier = db.query(Supplier).filter(Supplier.name == "测试厂家订单").first()
+        supplier = db.query(Supplier).filter(Supplier.name == "测试供应商订单").first()
         supplier_id = supplier.id if supplier else 1
     finally:
         db.close()
@@ -184,7 +184,7 @@ def test_update_order_status():
     finally:
         db.close()
     
-    # 厂家确认订单
+    # 供应商确认订单
     # 注意：由于supplier_id指向suppliers表，而用户ID可能不匹配
     # 这个测试可能需要调整，暂时接受403（权限不足）或200（成功）
     supplier_headers = get_auth_headers("testsupplier_order")

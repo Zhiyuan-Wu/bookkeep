@@ -189,11 +189,11 @@ async function deleteUser(userId) {
     }
 }
 
-// 加载普通用户列表（用于学生用户的管理用户选择）
+// 加载课题组用户列表（用于普通用户的管理用户选择）
 async function loadNormalUsersForManager() {
     try {
         const users = await apiRequest('/users/');
-        const normalUsers = users.filter(u => u.user_type === '普通用户');
+        const normalUsers = users.filter(u => u.user_type === '课题组用户');
 
         const managerSelect = document.getElementById('managerSelect');
         if (managerSelect) {
@@ -206,7 +206,7 @@ async function loadNormalUsersForManager() {
             });
         }
     } catch (error) {
-        console.error('加载普通用户列表失败:', error);
+        console.error('加载课题组用户列表失败:', error);
     }
 }
 
@@ -246,16 +246,16 @@ function openUserModal() {
                         <span><i class="fas fa-user-shield"></i> 管理员</span>
                     </div>
                     <div class="radio-item">
-                        <input type="radio" name="user_type" value="普通用户" id="userTypeNormal" required>
-                        <span><i class="fas fa-user"></i> 普通用户</span>
+                        <input type="radio" name="user_type" value="课题组用户" id="userTypeNormal" required>
+                        <span><i class="fas fa-user"></i> 课题组用户</span>
                     </div>
                     <div class="radio-item">
-                        <input type="radio" name="user_type" value="厂家" id="userTypeSupplier" required>
-                        <span><i class="fas fa-building"></i> 厂家</span>
+                        <input type="radio" name="user_type" value="供应商" id="userTypeSupplier" required>
+                        <span><i class="fas fa-building"></i> 供应商</span>
                     </div>
                     <div class="radio-item">
-                        <input type="radio" name="user_type" value="学生用户" id="userTypeStudent" required>
-                        <span><i class="fas fa-user-graduate"></i> 学生用户</span>
+                        <input type="radio" name="user_type" value="普通用户" id="userTypeStudent" required>
+                        <span><i class="fas fa-user-graduate"></i> 普通用户</span>
                     </div>
                 </div>
             </div>
@@ -267,7 +267,7 @@ function openUserModal() {
                 <select name="manager_id" id="managerSelect" required>
                     <option value="">请选择管理用户</option>
                 </select>
-                <small style="color: #666; font-size: 12px;">学生用户必须指定一个普通用户作为管理用户</small>
+                <small style="color: #666; font-size: 12px;">普通用户必须指定一个课题组用户作为管理用户</small>
             </div>
             <div class="form-group">
                 <label>
@@ -296,7 +296,7 @@ function openUserModal() {
     document.getElementById('modalContainer').appendChild(modal);
     openModal('userModal');
     
-    // 加载普通用户列表（用于学生用户的管理用户选择）
+    // 加载课题组用户列表（用于普通用户的管理用户选择）
     loadNormalUsersForManager();
     
     // 绑定单选按钮点击事件，确保选中状态正确显示
@@ -318,8 +318,8 @@ function openUserModal() {
                 });
                 item.classList.add('selected');
 
-                // 如果是学生用户，显示管理用户选择框
-                if (radio.value === '学生用户') {
+                // 如果是普通用户，显示管理用户选择框
+                if (radio.value === '普通用户') {
                     managerUserGroup.style.display = 'block';
                     managerSelect.required = true;
                 } else {
@@ -368,10 +368,10 @@ async function createUserFromForm() {
             user_type: formData.user_type
         };
         
-        // 如果是学生用户，需要添加管理用户ID
-        if (formData.user_type === '学生用户') {
+        // 如果是普通用户，需要添加管理用户ID
+        if (formData.user_type === '普通用户') {
             if (!formData.manager_id) {
-                showMessage('学生用户必须指定管理用户', 'error');
+                showMessage('普通用户必须指定管理用户', 'error');
                 return;
             }
             requestData.manager_id = parseInt(formData.manager_id);

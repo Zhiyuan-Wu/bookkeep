@@ -18,10 +18,10 @@ def setup_db():
     init_db()
     db = SessionLocal()
     try:
-        # 创建测试厂家（先创建厂家，因为supplier_id是外键）
-        existing_supplier = db.query(Supplier).filter(Supplier.name == "测试厂家").first()
+        # 创建测试供应商（先创建供应商，因为supplier_id是外键）
+        existing_supplier = db.query(Supplier).filter(Supplier.name == "测试供应商").first()
         if not existing_supplier:
-            supplier = Supplier(name="测试厂家")
+            supplier = Supplier(name="测试供应商")
             db.add(supplier)
             db.flush()  # 获取supplier.id
         
@@ -35,9 +35,9 @@ def setup_db():
             db.add(admin)
         if not db.query(User).filter(User.username == "testsupplier").first():
             # 获取或创建supplier
-            supplier = db.query(Supplier).filter(Supplier.name == "测试厂家").first()
+            supplier = db.query(Supplier).filter(Supplier.name == "测试供应商").first()
             if not supplier:
-                supplier = Supplier(name="测试厂家")
+                supplier = Supplier(name="测试供应商")
                 db.add(supplier)
                 db.flush()
             supplier_user = User(
@@ -93,14 +93,14 @@ def test_create_product_as_admin():
     assert data["internal_price"] == 80.0
 
 def test_create_product_as_supplier():
-    """测试厂家用户创建商品"""
+    """测试供应商用户创建商品"""
     headers = get_auth_headers("testsupplier")
     
-    # 获取supplier用户的ID（厂家用户创建商品时，supplier_id必须等于自己的user_id）
+    # 获取supplier用户的ID（供应商用户创建商品时，supplier_id必须等于自己的user_id）
     # 但supplier_id实际上指向suppliers表，所以我们需要先获取supplier的ID
     db = SessionLocal()
     try:
-        supplier = db.query(Supplier).filter(Supplier.name == "测试厂家").first()
+        supplier = db.query(Supplier).filter(Supplier.name == "测试供应商").first()
         supplier_id = supplier.id if supplier else 1
         
         # 获取supplier用户的ID
@@ -113,28 +113,28 @@ def test_create_product_as_supplier():
     response = client.post(
         "/api/products/",
         json={
-            "name": "厂家商品",
+            "name": "供应商商品",
             "tax_included_price": 120.0,
             "supplier_id": supplier_id
         },
         headers=headers
     )
-    # 厂家用户创建商品应该成功
+    # 供应商用户创建商品应该成功
     assert response.status_code == 200
     data = response.json()
-    assert data["name"] == "厂家商品"
-    # 厂家用户看不到内部价格（返回None）
+    assert data["name"] == "供应商商品"
+    # 供应商用户看不到内部价格（返回None）
     assert data["internal_price"] is None
     assert data["tax_included_price"] == 120.0
 
 def test_create_product_as_normal_user():
-    """测试普通用户不能创建商品"""
+    """测试课题组用户不能创建商品"""
     headers = get_auth_headers("testnormal")
     
     response = client.post(
         "/api/products/",
         json={
-            "name": "普通用户商品",
+            "name": "课题组用户商品",
             "tax_included_price": 100.0,
             "supplier_id": 1
         },

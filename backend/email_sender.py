@@ -113,7 +113,7 @@ async def send_order_notification(
         to_name: 收件人名称
         order_id: 订单ID
         order_status: 订单状态
-        supplier_name: 厂家名称（可选）
+        supplier_name: 供应商名称（可选）
         order_summary: 订单摘要（可选）
         
     Returns:
@@ -141,7 +141,7 @@ async def send_order_notification(
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
                 <p><strong>订单编号：</strong>#{order_id}</p>
                 <p><strong>订单状态：</strong>{status_text}</p>
-                {f'<p><strong>厂家：</strong>{supplier_name}</p>' if supplier_name else ''}
+                {f'<p><strong>供应商：</strong>{supplier_name}</p>' if supplier_name else ''}
                 {f'<p><strong>订单摘要：</strong>{order_summary}</p>' if order_summary else ''}
             </div>
             <p>请登录系统查看订单详情。</p>
@@ -162,7 +162,7 @@ async def send_order_notification(
 
 订单编号：#{order_id}
 订单状态：{status_text}
-{f'厂家：{supplier_name}' if supplier_name else ''}
+{f'供应商：{supplier_name}' if supplier_name else ''}
 {f'订单摘要：{order_summary}' if order_summary else ''}
 
 请登录系统查看订单详情。
@@ -192,7 +192,7 @@ async def send_service_notification(
         to_name: 收件人名称
         service_id: 服务记录ID
         service_status: 服务状态
-        supplier_name: 厂家名称（可选）
+        supplier_name: 供应商名称（可选）
         service_content: 服务内容（可选）
         service_amount: 服务金额（可选）
         
@@ -221,7 +221,7 @@ async def send_service_notification(
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
                 <p><strong>服务记录编号：</strong>#{service_id}</p>
                 <p><strong>服务状态：</strong>{status_text}</p>
-                {f'<p><strong>厂家：</strong>{supplier_name}</p>' if supplier_name else ''}
+                {f'<p><strong>供应商：</strong>{supplier_name}</p>' if supplier_name else ''}
                 {f'<p><strong>服务内容：</strong>{service_content}</p>' if service_content else ''}
                 {f'<p><strong>服务金额：</strong>¥{service_amount:.2f}</p>' if service_amount is not None else ''}
             </div>
@@ -243,7 +243,7 @@ async def send_service_notification(
 
 服务记录编号：#{service_id}
 服务状态：{status_text}
-{f'厂家：{supplier_name}' if supplier_name else ''}
+{f'供应商：{supplier_name}' if supplier_name else ''}
 {f'服务内容：{service_content}' if service_content else ''}
 {f'服务金额：¥{service_amount:.2f}' if service_amount is not None else ''}
 

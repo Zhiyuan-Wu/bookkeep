@@ -21,10 +21,10 @@ def setup_db():
     init_db()
     db = SessionLocal()
     try:
-        # 创建测试厂家
-        existing_supplier = db.query(Supplier).filter(Supplier.name == "测试统计厂家").first()
+        # 创建测试供应商
+        existing_supplier = db.query(Supplier).filter(Supplier.name == "测试统计供应商").first()
         if not existing_supplier:
-            supplier = Supplier(name="测试统计厂家")
+            supplier = Supplier(name="测试统计供应商")
             db.add(supplier)
             db.flush()
             supplier_id = supplier.id
@@ -120,7 +120,7 @@ def test_get_statistics_as_admin():
     assert data["total"]["supplier_name"] == "总计"
 
 def test_get_statistics_as_normal_user():
-    """测试普通用户获取统计信息"""
+    """测试课题组用户获取统计信息"""
     headers = get_auth_headers("testnormal_stat")
     
     response = client.get("/api/statistics/", headers=headers)
@@ -130,16 +130,16 @@ def test_get_statistics_as_normal_user():
     assert "total" in data
 
 def test_get_statistics_as_supplier():
-    """测试厂家用户不能获取统计信息"""
-    # 先创建厂家用户
+    """测试供应商用户不能获取统计信息"""
+    # 先创建供应商用户
     db = SessionLocal()
     try:
         supplier_user = db.query(User).filter(User.username == "testsupplier_stat").first()
         if not supplier_user:
             # 获取或创建supplier
-            supplier = db.query(Supplier).filter(Supplier.name == "测试厂家统计").first()
+            supplier = db.query(Supplier).filter(Supplier.name == "测试供应商统计").first()
             if not supplier:
-                supplier = Supplier(name="测试厂家统计")
+                supplier = Supplier(name="测试供应商统计")
                 db.add(supplier)
                 db.flush()
             supplier_user = User(

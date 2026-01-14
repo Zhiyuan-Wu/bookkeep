@@ -85,10 +85,10 @@ async def list_products(
     # 构建查询
     query = db.query(Product).filter(Product.is_deleted == False)
     
-    # 厂家用户只能看到自己的商品
+    # 供应商用户只能看到自己的商品
     if current_user.user_type == USER_TYPE_SUPPLIER:
         if not current_user.supplier_id:
-            # 如果厂家用户没有关联的supplier_id，返回空结果
+            # 如果供应商用户没有关联的supplier_id，返回空结果
             query = query.filter(Product.id == -1)  # 永远不匹配的条件
         else:
             query = query.filter(Product.supplier_id == current_user.supplier_id)
@@ -110,7 +110,7 @@ async def list_products(
     offset = (page - 1) * page_size
     products = query.order_by(Product.created_at.desc()).offset(offset).limit(page_size).all()
     
-    # 加载关联的厂家信息
+    # 加载关联的供应商信息
     for product in products:
         if not product.supplier_obj:
             product.supplier_obj = db.query(Supplier).filter(Supplier.id == product.supplier_id).first()
@@ -155,7 +155,7 @@ async def get_product(
             detail="商品不存在"
         )
     
-    # 厂家用户只能查看自己的商品
+    # 供应商用户只能查看自己的商品
     if current_user.user_type == USER_TYPE_SUPPLIER:
         if not current_user.supplier_id or product.supplier_id != current_user.supplier_id:
             raise HTTPException(
@@ -177,7 +177,7 @@ async def create_product(
     db: Session = Depends(get_db)
 ):
     """
-    创建新商品（管理员和厂家用户）
+    创建新商品（管理员和供应商用户）
     
     Args:
         product_data: 商品创建信息
@@ -188,7 +188,7 @@ async def create_product(
         ProductResponse: 创建的商品信息
         
     Raises:
-        HTTPException: 如果用户类型不允许或厂家ID无效
+        HTTPException: 如果用户类型不允许或供应商ID无效
         
     使用样例:
         POST /api/products/
@@ -212,14 +212,14 @@ async def create_product(
                 detail="无权创建商品"
             )
     
-        # 厂家用户只能为自己创建商品，且不能设置内部价格
+        # 供应商用户只能为自己创建商品，且不能设置内部价格
         if current_user.user_type == USER_TYPE_SUPPLIER:
             if not current_user.supplier_id or product_data.supplier_id != current_user.supplier_id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="只能为自己创建商品"
                 )
-            # 厂家用户创建商品时，内部价格默认为含税价格
+            # 供应商用户创建商品时，内部价格默认为含税价格
             internal_price = product_data.tax_included_price
         else:
             # 管理员可以不提供内部价格，如果不提供则默认为含税价格
@@ -228,12 +228,12 @@ async def create_product(
             else:
                 internal_price = product_data.internal_price
         
-        # 验证厂家是否存在
+        # 验证供应商是否存在
         supplier = db.query(Supplier).filter(Supplier.id == product_data.supplier_id).first()
         if not supplier:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="厂家不存在"
+                detail="供应商不存在"
             )
         
         # 创建商品
@@ -289,7 +289,7 @@ async def update_product(
     db: Session = Depends(get_db)
 ):
     """
-    更新商品信息（管理员和厂家用户）
+    更新商品信息（管理员和供应商用户）
     
     Args:
         product_id: 商品ID
@@ -324,11 +324,11 @@ async def update_product(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="无权修改此商品"
             )
-        # 厂家用户不能修改内部价格
+        # 供应商用户不能修改内部价格
         if product_data.internal_price is not None:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="厂家用户不能修改内部价格"
+                detail="供应商用户不能修改内部价格"
             )
     elif current_user.user_type != USER_TYPE_ADMIN:
         raise HTTPException(
@@ -367,7 +367,7 @@ async def delete_product(
     db: Session = Depends(get_db)
 ):
     """
-    删除商品（软删除，仅管理员和厂家用户）
+    删除商品（软删除，仅管理员和供应商用户）
     
     Args:
         product_id: 商品ID

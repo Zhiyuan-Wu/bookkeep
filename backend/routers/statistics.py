@@ -24,8 +24,8 @@ async def get_statistics(
     db: Session = Depends(get_db)
 ):
     """
-    获取统计信息（普通用户和管理员）
-    按照厂家分组统计订单和服务记录
+    获取统计信息（课题组用户和管理员）
+    按照供应商分组统计订单和服务记录
     
     Args:
         current_user: 当前登录用户
@@ -40,11 +40,11 @@ async def get_statistics(
     使用样例:
         GET /api/statistics/
     """
-    # 只有普通用户和管理员可以查看统计信息（学生用户不能查看）
+    # 只有课题组用户和管理员可以查看统计信息（普通用户不能查看）
     if current_user.user_type == USER_TYPE_SUPPLIER or current_user.user_type == USER_TYPE_STUDENT:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="厂家用户和学生用户不能查看统计信息"
+            detail="供应商用户和普通用户不能查看统计信息"
         )
     
     can_view_internal = can_view_internal_price(current_user)
@@ -52,7 +52,7 @@ async def get_statistics(
     # 构建订单查询（只统计确认状态的订单）
     order_query = db.query(Order).filter(Order.status == ORDER_STATUS_CONFIRMED)
     if current_user.user_type == USER_TYPE_NORMAL:
-        # 普通用户统计自己的订单以及其管理学生的订单
+        # 课题组用户统计自己的订单以及其管理学生的订单
         from sqlalchemy import or_
         managed_students = db.query(User.id).filter(User.manager_id == current_user.id).all()
         managed_student_ids = [s[0] for s in managed_students]
@@ -69,7 +69,7 @@ async def get_statistics(
     # 构建服务记录查询（只统计确认状态的服务）
     service_query = db.query(ServiceRecord).filter(ServiceRecord.status == SERVICE_STATUS_CONFIRMED)
     if current_user.user_type == USER_TYPE_NORMAL:
-        # 普通用户统计自己的服务记录以及其管理学生的服务记录
+        # 课题组用户统计自己的服务记录以及其管理学生的服务记录
         from sqlalchemy import or_
         managed_students = db.query(User.id).filter(User.manager_id == current_user.id).all()
         managed_student_ids = [s[0] for s in managed_students]
@@ -83,7 +83,7 @@ async def get_statistics(
         else:
             service_query = service_query.filter(ServiceRecord.user_id == current_user.id)
     
-    # 获取所有相关的厂家ID
+    # 获取所有相关的供应商ID
     supplier_ids = set()
     orders = order_query.all()
     services = service_query.all()
@@ -93,7 +93,7 @@ async def get_statistics(
     for service in services:
         supplier_ids.add(service.supplier_id)
     
-    # 按厂家统计
+    # 按供应商统计
     statistics_items = []
     total_order_count = 0
     total_product_count = 0
@@ -106,7 +106,7 @@ async def get_statistics(
         if not supplier:
             continue
         
-        # 统计该厂家的订单
+        # 统计该供应商的订单
         supplier_orders = [o for o in orders if o.supplier_id == supplier_id]
         order_count = len(supplier_orders)
         product_count = 0
@@ -121,7 +121,7 @@ async def get_statistics(
                 supplier_internal_price += totals["total_internal_price"]
             supplier_tax_included_price += totals["total_tax_included_price"]
         
-        # 统计该厂家的服务记录
+        # 统计该供应商的服务记录
         supplier_services = [s for s in services if s.supplier_id == supplier_id]
         supplier_service_amount = sum(s.amount for s in supplier_services)
         

@@ -63,17 +63,17 @@ function renderOrdersTable(orders) {
                 <button class="action-btn" onclick="viewOrderDetail(${order.id})" title="查看详情">
                     <i class="fas fa-eye"></i>
                 </button>
-                ${currentUser.user_type === '厂家' && order.status === '发起' ? `
+                ${currentUser.user_type === '供应商' && order.status === '发起' ? `
                     <button class="action-btn btn-success" onclick="confirmOrder(${order.id})" title="确认订单">
                         <i class="fas fa-check"></i>
                     </button>
                 ` : ''}
-                ${currentUser.user_type !== '厂家' && order.status === '暂存' ? `
+                ${currentUser.user_type !== '供应商' && order.status === '暂存' ? `
                     <button class="action-btn btn-primary" onclick="submitOrder(${order.id})" title="发起订单">
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 ` : ''}
-                ${(currentUser.user_type !== '厂家' && order.status !== '无效') || currentUser.user_type === '管理员' ? `
+                ${(currentUser.user_type !== '供应商' && order.status !== '无效') || currentUser.user_type === '管理员' ? `
                     <button class="action-btn btn-danger" onclick="deleteOrder(${order.id})" title="删除">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -86,7 +86,7 @@ function renderOrdersTable(orders) {
             <td data-label="操作">${actions}</td>
             <td data-label="订单号">#${order.id}</td>
             <td data-label="用户">${order.username || '-'}</td>
-            <td data-label="厂家">${order.supplier_name || '-'}</td>
+            <td data-label="供应商">${order.supplier_name || '-'}</td>
             <td data-label="订单内容">${contentSummary}</td>
             <td data-label="状态"><span class="tag-item status-tag status-${getStatusClass(order.status)}">${order.status}</span></td>
             <td data-label="创建时间">${formatDate(order.created_at)}</td>
@@ -137,7 +137,7 @@ async function viewOrderDetail(orderId) {
                             ${item.specification ? `<span class="cart-item-detail"><i class="fas fa-ruler-combined"></i>${item.specification}</span>` : ''}
                         </div>
                         <div class="cart-item-price">
-                            ${(currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户' && item.internal_price !== null && item.internal_price !== undefined) ?
+                            ${(currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户' && item.internal_price !== null && item.internal_price !== undefined) ?
                                 `<span class="price-internal">内部: ${formatCurrency(item.internal_price)}</span>` : ''}
                             <span class="price-tax">含税: ${formatCurrency(item.tax_included_price)}</span>
                         </div>
@@ -152,7 +152,7 @@ async function viewOrderDetail(orderId) {
             // PC端：表格布局
             itemsHtml = '<table class="data-table"><thead><tr>';
             itemsHtml += '<th>商品名</th><th>品牌</th><th>型号</th><th>规格</th>';
-            if (currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') {
+            if (currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户') {
                 itemsHtml += '<th>内部价格</th>';
             }
             itemsHtml += '<th>含税价格</th><th>数量</th></tr></thead><tbody>';
@@ -163,7 +163,7 @@ async function viewOrderDetail(orderId) {
                 itemsHtml += `<td>${item.brand || '-'}</td>`;
                 itemsHtml += `<td>${item.model || '-'}</td>`;
                 itemsHtml += `<td>${item.specification || '-'}</td>`;
-                if (currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') {
+                if (currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户') {
                     itemsHtml += `<td>${formatCurrency(item.internal_price)}</td>`;
                 }
                 itemsHtml += `<td>${formatCurrency(item.tax_included_price)}</td>`;
@@ -176,7 +176,7 @@ async function viewOrderDetail(orderId) {
 
         const totalsHtml = `
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--color-border);">
-                ${(currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户' && order.total_internal_price !== null) ? `<p><strong>总内部价格：</strong>${formatCurrency(order.total_internal_price)}</p>` : ''}
+                ${(currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户' && order.total_internal_price !== null) ? `<p><strong>总内部价格：</strong>${formatCurrency(order.total_internal_price)}</p>` : ''}
                 <p><strong>总含税价格：</strong>${formatCurrency(order.total_tax_included_price)}</p>
             </div>
             <div class="form-actions" style="margin-top: 20px;">
@@ -281,7 +281,7 @@ async function exportOrder(orderId) {
     }
 }
 
-// 加载厂家下拉框（订单页面）
+// 加载供应商下拉框（订单页面）
 async function loadOrderSuppliers() {
     try {
         const suppliers = await getSuppliers();
@@ -295,7 +295,7 @@ async function loadOrderSuppliers() {
             select.appendChild(option);
         });
     } catch (error) {
-        console.error('加载厂家列表失败:', error);
+        console.error('加载供应商列表失败:', error);
     }
 }
 

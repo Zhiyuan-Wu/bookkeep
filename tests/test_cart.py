@@ -20,10 +20,10 @@ def setup_db():
     init_db()
     db = SessionLocal()
     try:
-        # 创建测试厂家
-        supplier = db.query(Supplier).filter(Supplier.name == "测试厂家购物车").first()
+        # 创建测试供应商
+        supplier = db.query(Supplier).filter(Supplier.name == "测试供应商购物车").first()
         if not supplier:
-            supplier = Supplier(name="测试厂家购物车")
+            supplier = Supplier(name="测试供应商购物车")
             db.add(supplier)
             db.flush()
         
@@ -113,7 +113,7 @@ def test_get_product_with_internal_price_as_admin():
 
 
 def test_get_product_with_internal_price_as_normal_user():
-    """测试普通用户获取商品时能看到内部价格"""
+    """测试课题组用户获取商品时能看到内部价格"""
     headers = get_auth_headers("testnormal_cart")
     
     # 先通过ID获取单个商品（更可靠）
@@ -131,13 +131,13 @@ def test_get_product_with_internal_price_as_normal_user():
     assert response.status_code == 200
     data = response.json()
     
-    # 普通用户应该能看到内部价格
+    # 课题组用户应该能看到内部价格
     assert data["internal_price"] == 100.0
     assert data["tax_included_price"] == 150.0
 
 
 def test_get_product_without_internal_price_as_supplier():
-    """测试厂家用户获取商品时不能看到内部价格"""
+    """测试供应商用户获取商品时不能看到内部价格"""
     headers = get_auth_headers("testsupplier_cart")
     
     # 获取商品列表
@@ -153,7 +153,7 @@ def test_get_product_without_internal_price_as_supplier():
             break
     
     assert test_product is not None
-    # 厂家用户不应该看到内部价格
+    # 供应商用户不应该看到内部价格
     assert test_product["internal_price"] is None
     assert test_product["tax_included_price"] == 150.0
 
@@ -188,7 +188,7 @@ def test_create_order_with_internal_price():
     # 先获取supplier ID
     db = SessionLocal()
     try:
-        supplier = db.query(Supplier).filter(Supplier.name == "测试厂家购物车").first()
+        supplier = db.query(Supplier).filter(Supplier.name == "测试供应商购物车").first()
         supplier_id = supplier.id if supplier else 1
     finally:
         db.close()
@@ -227,16 +227,16 @@ def test_create_order_with_internal_price():
 
 
 def test_create_order_without_internal_price():
-    """测试创建订单时不包含内部价格（厂家用户场景）"""
+    """测试创建订单时不包含内部价格（供应商用户场景）"""
     headers = get_auth_headers("testsupplier_cart")
     
-    # 先获取supplier ID和普通用户
+    # 先获取supplier ID和课题组用户
     db = SessionLocal()
     try:
-        supplier = db.query(Supplier).filter(Supplier.name == "测试厂家购物车").first()
+        supplier = db.query(Supplier).filter(Supplier.name == "测试供应商购物车").first()
         supplier_id = supplier.id if supplier else 1
         
-        # 获取或创建一个普通用户作为服务对象
+        # 获取或创建一个课题组用户作为服务对象
         normal_user = db.query(User).filter(User.username == "testnormal_cart").first()
         if not normal_user:
             normal_user = User(
@@ -251,9 +251,9 @@ def test_create_order_without_internal_price():
     finally:
         db.close()
     
-    # 厂家用户创建服务记录（不是订单，但类似）
-    # 注意：厂家用户不能创建订单，只能创建服务记录
-    # 现在需要提供 user_username（普通用户或管理员）
+    # 供应商用户创建服务记录（不是订单，但类似）
+    # 注意：供应商用户不能创建订单，只能创建服务记录
+    # 现在需要提供 user_username（课题组用户或管理员）
     response = client.post(
         "/api/services/",
         json={
@@ -265,7 +265,7 @@ def test_create_order_without_internal_price():
         headers=headers
     )
     
-    # 厂家用户可以创建服务记录
+    # 供应商用户可以创建服务记录
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "暂存"
