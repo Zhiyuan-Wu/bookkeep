@@ -157,7 +157,8 @@
 }
 
 /* ==================== 购物车按钮样式 ==================== */
-#cartBtn {
+#cartBtn,
+.mobile-cart-btn {
     position: relative;
 }
 

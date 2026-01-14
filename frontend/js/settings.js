@@ -85,11 +85,11 @@ function renderUsersTable(users) {
         const contactHtml = contactInfo.length > 0 ? `<br><small style="color: #666;">${contactInfo.join(' ')}</small>` : '';
         
         row.innerHTML = `
-            <td>${actions}</td>
-            <td>${user.id}</td>
-            <td>${user.username}${contactHtml}</td>
-            <td>${user.user_type}</td>
-            <td>${formatDate(user.created_at)}</td>
+            <td data-label="操作">${actions}</td>
+            <td data-label="ID">${user.id}</td>
+            <td data-label="用户名">${user.username}${contactHtml}</td>
+            <td data-label="用户类型">${user.user_type}</td>
+            <td data-label="创建时间">${formatDate(user.created_at)}</td>
         `;
         
         tbody.appendChild(row);
@@ -282,30 +282,26 @@ function openUserModal() {
     const radioItems = modal.querySelectorAll('.radio-item');
     const managerUserGroup = modal.querySelector('#managerUserGroup');
     const managerSelect = modal.querySelector('#managerSelect');
-    
+
     radioItems.forEach(item => {
         const radio = item.querySelector('input[type="radio"]');
         if (radio) {
-            // 点击整个radio-item时，选中对应的radio
+            // 点击整个radio-item时，选中对应的radio并更新样式
             item.addEventListener('click', (e) => {
-                if (e.target !== radio) {
-                    radio.checked = true;
-                    // 触发change事件，确保样式更新
-                    radio.dispatchEvent(new Event('change', { bubbles: true }));
+                // 如果已经选中，不做任何操作
+                if (radio.checked) {
+                    return;
                 }
-            });
-            
-            // 监听radio的change事件，更新样式和管理用户选择框显示
-            radio.addEventListener('change', () => {
-                // 移除所有选中状态
+
+                // 选中单选按钮
+                radio.checked = true;
+
+                // 更新样式：移除所有选中状态，给当前项添加选中状态
                 radioItems.forEach(ri => {
                     ri.classList.remove('selected');
                 });
-                // 添加当前选中状态
-                if (radio.checked) {
-                    item.classList.add('selected');
-                }
-                
+                item.classList.add('selected');
+
                 // 如果是学生用户，显示管理用户选择框
                 if (radio.value === '学生用户') {
                     managerUserGroup.style.display = 'block';

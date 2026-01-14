@@ -45,29 +45,49 @@ async function addProductToCart(productId) {
 // 更新购物车徽章
 function updateCartBadge() {
     const cartBtn = document.getElementById('cartBtn');
-    if (!cartBtn) return;
-    
+    const mobileCartBtn = document.getElementById('mobileCartBtn');
+
     let totalItems = 0;
-    
+
     // 计算所有商品的总数量（不是商品种类数）
     for (const supplierId in cart) {
         cart[supplierId].items.forEach(item => {
             totalItems += item.quantity;
         });
     }
-    
-    // 移除旧徽章
-    const oldBadge = cartBtn.querySelector('.cart-badge');
-    if (oldBadge) {
-        oldBadge.remove();
+
+    // 更新侧边栏购物车按钮徽章
+    if (cartBtn) {
+        // 移除旧徽章
+        const oldBadge = cartBtn.querySelector('.cart-badge');
+        if (oldBadge) {
+            oldBadge.remove();
+        }
+
+        // 添加新徽章
+        if (totalItems > 0) {
+            const badge = document.createElement('span');
+            badge.className = 'cart-badge';
+            badge.textContent = totalItems;
+            cartBtn.appendChild(badge);
+        }
     }
-    
-    // 添加新徽章
-    if (totalItems > 0) {
-        const badge = document.createElement('span');
-        badge.className = 'cart-badge';
-        badge.textContent = totalItems;
-        cartBtn.appendChild(badge);
+
+    // 更新移动端顶部购物车按钮徽章
+    if (mobileCartBtn) {
+        // 移除旧徽章
+        const oldBadge = mobileCartBtn.querySelector('.cart-badge');
+        if (oldBadge) {
+            oldBadge.remove();
+        }
+
+        // 添加新徽章
+        if (totalItems > 0) {
+            const badge = document.createElement('span');
+            badge.className = 'cart-badge';
+            badge.textContent = totalItems;
+            mobileCartBtn.appendChild(badge);
+        }
     }
 }
 

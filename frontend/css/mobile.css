@@ -133,7 +133,11 @@
     .data-table td[data-label="厂家"],
     .data-table td[data-label="订单号"],
     .data-table td[data-label="用户"],
-    .data-table td[data-label="状态"] {
+    .data-table td[data-label="状态"],
+    .data-table td[data-label="ID"],
+    .data-table td[data-label="用户名"],
+    .data-table td[data-label="用户类型"],
+    .data-table td[data-label="创建时间"] {
         display: flex;
         justify-content: space-between;
     }
@@ -450,6 +454,27 @@
         outline: none;
         border-color: var(--color-primary);
         box-shadow: 0 0 0 3px rgba(20, 118, 255, 0.12);
+    }
+
+    /* ==================== 统计信息卡片行样式 ==================== */
+    .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: var(--color-muted);
+        flex: 1;
+    }
+
+    .stat-value {
+        font-size: 0.9rem;
+        color: var(--color-text);
+        font-weight: 500;
+        text-align: right;
     }
 
     /* ==================== 购物车表格行移动端样式 ==================== */

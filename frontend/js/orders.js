@@ -116,30 +116,64 @@ function renderOrdersPagination(page, pageSize, total) {
 async function viewOrderDetail(orderId) {
     try {
         const order = await apiRequest(`/orders/${orderId}`);
-        
-        let itemsHtml = '<table class="data-table"><thead><tr>';
-        itemsHtml += '<th>商品名</th><th>品牌</th><th>型号</th><th>规格</th>';
-        if (currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') {
-            itemsHtml += '<th>内部价格</th>';
-        }
-        itemsHtml += '<th>含税价格</th><th>数量</th></tr></thead><tbody>';
-        
-        order.items.forEach(item => {
-            itemsHtml += '<tr>';
-            itemsHtml += `<td>${item.name}</td>`;
-            itemsHtml += `<td>${item.brand || '-'}</td>`;
-            itemsHtml += `<td>${item.model || '-'}</td>`;
-            itemsHtml += `<td>${item.specification || '-'}</td>`;
+
+        // 检测是否为移动端
+        const isMobile = window.innerWidth <= 768;
+
+        let itemsHtml;
+
+        if (isMobile) {
+            // 移动端：卡片式布局
+            itemsHtml = '<div class="cart-items-mobile">';
+            order.items.forEach(item => {
+                itemsHtml += `
+                    <div class="cart-item-card">
+                        <div class="cart-item-header">
+                            <span class="cart-item-name">${item.name}</span>
+                        </div>
+                        <div class="cart-item-details">
+                            ${item.brand ? `<span class="cart-item-detail"><i class="fas fa-tag"></i>${item.brand}</span>` : ''}
+                            ${item.model ? `<span class="cart-item-detail"><i class="fas fa-cog"></i>${item.model}</span>` : ''}
+                            ${item.specification ? `<span class="cart-item-detail"><i class="fas fa-ruler-combined"></i>${item.specification}</span>` : ''}
+                        </div>
+                        <div class="cart-item-price">
+                            ${(currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户' && item.internal_price !== null && item.internal_price !== undefined) ?
+                                `<span class="price-internal">内部: ${formatCurrency(item.internal_price)}</span>` : ''}
+                            <span class="price-tax">含税: ${formatCurrency(item.tax_included_price)}</span>
+                        </div>
+                        <div class="cart-item-quantity">
+                            <span style="font-size: 0.9rem; color: var(--color-muted);">数量: ${item.quantity}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            itemsHtml += '</div>';
+        } else {
+            // PC端：表格布局
+            itemsHtml = '<table class="data-table"><thead><tr>';
+            itemsHtml += '<th>商品名</th><th>品牌</th><th>型号</th><th>规格</th>';
             if (currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') {
-                itemsHtml += `<td>${formatCurrency(item.internal_price)}</td>`;
+                itemsHtml += '<th>内部价格</th>';
             }
-            itemsHtml += `<td>${formatCurrency(item.tax_included_price)}</td>`;
-            itemsHtml += `<td>${item.quantity}</td>`;
-            itemsHtml += '</tr>';
-        });
-        
-        itemsHtml += '</tbody></table>';
-        
+            itemsHtml += '<th>含税价格</th><th>数量</th></tr></thead><tbody>';
+
+            order.items.forEach(item => {
+                itemsHtml += '<tr>';
+                itemsHtml += `<td>${item.name}</td>`;
+                itemsHtml += `<td>${item.brand || '-'}</td>`;
+                itemsHtml += `<td>${item.model || '-'}</td>`;
+                itemsHtml += `<td>${item.specification || '-'}</td>`;
+                if (currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户') {
+                    itemsHtml += `<td>${formatCurrency(item.internal_price)}</td>`;
+                }
+                itemsHtml += `<td>${formatCurrency(item.tax_included_price)}</td>`;
+                itemsHtml += `<td>${item.quantity}</td>`;
+                itemsHtml += '</tr>';
+            });
+
+            itemsHtml += '</tbody></table>';
+        }
+
         const totalsHtml = `
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--color-border);">
                 ${(currentUser.user_type !== '厂家' && currentUser.user_type !== '学生用户' && order.total_internal_price !== null) ? `<p><strong>总内部价格：</strong>${formatCurrency(order.total_internal_price)}</p>` : ''}
@@ -151,7 +185,7 @@ async function viewOrderDetail(orderId) {
                 </button>
             </div>
         `;
-        
+
         const modal = createModal('orderDetailModal', '订单详情', itemsHtml + totalsHtml);
         document.getElementById('modalContainer').appendChild(modal);
         openModal('orderDetailModal');
