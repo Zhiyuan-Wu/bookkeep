@@ -189,6 +189,27 @@ async function deleteUser(userId) {
     }
 }
 
+// 加载普通用户列表（用于学生用户的管理用户选择）
+async function loadNormalUsersForManager() {
+    try {
+        const users = await apiRequest('/users/');
+        const normalUsers = users.filter(u => u.user_type === '普通用户');
+
+        const managerSelect = document.getElementById('managerSelect');
+        if (managerSelect) {
+            managerSelect.innerHTML = '<option value="">请选择管理用户</option>';
+            normalUsers.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.username;
+                managerSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('加载普通用户列表失败:', error);
+    }
+}
+
 // 打开新建用户模态框
 function openUserModal() {
     const formHtml = `
@@ -288,11 +309,6 @@ function openUserModal() {
         if (radio) {
             // 点击整个radio-item时，选中对应的radio并更新样式
             item.addEventListener('click', (e) => {
-                // 如果已经选中，不做任何操作
-                if (radio.checked) {
-                    return;
-                }
-
                 // 选中单选按钮
                 radio.checked = true;
 
