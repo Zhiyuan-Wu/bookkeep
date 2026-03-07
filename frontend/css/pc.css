@@ -36,6 +36,12 @@
     color: var(--color-primary);
 }
 
+.sidebar-header h3 .header-logo {
+    height: 32px;
+    width: auto;
+    object-fit: contain;
+}
+
 .sidebar-nav {
     flex: 1;
     padding: 20px 0;
