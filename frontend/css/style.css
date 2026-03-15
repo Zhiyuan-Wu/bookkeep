@@ -568,6 +568,58 @@ select:disabled {
     border-color: #bdbdbd;
 }
 
+/* 标签页按钮样式 */
+.tabs-container {
+    display: flex;
+    border-bottom: 2px solid var(--color-border);
+    margin-bottom: 20px;
+}
+
+.tab-button {
+    flex: 1;
+    padding: 14px 24px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    cursor: pointer;
+    font-size: 15px;
+    font-family: inherit;
+    font-weight: 500;
+    color: var(--color-muted);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    outline: none;
+    /* 重置浏览器默认样式 */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    box-shadow: none;
+}
+
+.tab-button:hover {
+    color: var(--color-primary);
+    background: rgba(20, 118, 255, 0.05);
+}
+
+.tab-button.active {
+    border-bottom: 3px solid #4472C4;
+    color: var(--color-primary);
+    font-weight: 600;
+    background: transparent;
+}
+
+.tab-button:focus {
+    outline: none;
+}
+
+.tab-button:active {
+    background: rgba(20, 118, 255, 0.08);
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     .sidebar {

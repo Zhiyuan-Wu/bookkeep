@@ -278,3 +278,40 @@ class StatisticsResponse(BaseModel):
     items: List[StatisticsItem]
     total: StatisticsItem
 
+
+class UserStatisticsItem(BaseModel):
+    """按用户统计的单项模型"""
+    user_id: int
+    username: str
+    group_id: int  # 所属课题组ID，管理员组为0
+    group_name: str  # 所属课题组名称
+    order_count: int
+    product_count: int
+    total_internal_price: float
+    total_tax_included_price: float
+    total_service_amount: float
+    total_tax: float
+    total_balance: float
+
+
+class GroupStatisticsItem(BaseModel):
+    """按课题组统计的模型"""
+    manager_id: int  # 课题组用户ID，管理员组为0
+    manager_name: str  # 课题组用户名，管理员组为"管理员组"
+    user_count: int  # 该组用户数（不含管理员本人）
+    order_count: int
+    product_count: int
+    total_internal_price: float
+    total_tax_included_price: float
+    total_service_amount: float
+    total_tax: float
+    total_balance: float
+
+
+class UserStatisticsResponse(BaseModel):
+    """按用户统计响应模型"""
+    groups: List[GroupStatisticsItem]  # 课题组分组数据
+    group_total: GroupStatisticsItem  # 课题组总计
+    details: List[UserStatisticsItem]  # 用户详细数据
+    detail_total: UserStatisticsItem  # 用户详情总计
+

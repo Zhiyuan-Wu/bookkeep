@@ -305,28 +305,98 @@
             <div class="page-header">
                 <h1><i class="fas fa-chart-bar"></i> 统计信息</h1>
             </div>
-            <div class="data-table-wrapper">
-                <table class="stats-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 15%;">供应商</th>
-                            <th style="width: 10%;">订单总数</th>
-                            <th style="width: 10%;">商品总数</th>
-                            <th style="width: 12%;">订单总内部价格</th>
-                            <th style="width: 12%;">订单总含税价格</th>
-                            <th style="width: 12%;">总服务价格</th>
-                            <th style="width: 12%;">总税额</th>
-                            <th style="width: 15%;">总结余</th>
-                        </tr>
-                    </thead>
-                    <tbody id="statisticsTableBody">
-                        <tr>
-                            <td colspan="8" style="text-align: center; padding: 40px;">
-                                <i class="fas fa-spinner fa-spin"></i> 加载中...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+
+            <!-- 标签页切换 -->
+            <div style="display: flex; border-bottom: 2px solid var(--color-border); margin-bottom: 20px;">
+                <button id="statsBySupplierTab" class="tab-button active" style="flex: 1; padding: 15px; border: none; background: none; cursor: pointer; font-size: 16px; border-bottom: 3px solid #4472C4;">
+                    <i class="fas fa-building"></i> 按供应商统计
+                </button>
+                <button id="statsByUserTab" class="tab-button" style="flex: 1; padding: 15px; border: none; background: none; cursor: pointer; font-size: 16px;">
+                    <i class="fas fa-users"></i> 按用户统计
+                </button>
+            </div>
+
+            <!-- 按供应商统计容器 -->
+            <div id="statsBySupplierContainer">
+                <div class="data-table-wrapper">
+                    <table class="stats-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 15%;">供应商</th>
+                                <th style="width: 10%;">订单总数</th>
+                                <th style="width: 10%;">商品总数</th>
+                                <th style="width: 12%;">订单总内部价格</th>
+                                <th style="width: 12%;">订单总含税价格</th>
+                                <th style="width: 12%;">总服务价格</th>
+                                <th style="width: 12%;">总税额</th>
+                                <th style="width: 15%;">总结余</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statisticsTableBody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 40px;">
+                                    <i class="fas fa-spinner fa-spin"></i> 加载中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 按用户统计容器 -->
+            <div id="statsByUserContainer" style="display: none;">
+                <!-- 表格1：课题组统计 -->
+                <h3 style="margin-bottom: 15px;"><i class="fas fa-layer-group"></i> 按课题组统计</h3>
+                <div class="data-table-wrapper" style="margin-bottom: 30px;">
+                    <table class="stats-table" id="statsGroupTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 18%;">课题组</th>
+                                <th style="width: 10%;">用户数</th>
+                                <th style="width: 10%;">订单总数</th>
+                                <th style="width: 10%;">商品总数</th>
+                                <th style="width: 12%;">订单总内部价格</th>
+                                <th style="width: 12%;">订单总含税价格</th>
+                                <th style="width: 10%;">总服务价格</th>
+                                <th style="width: 10%;">总税额</th>
+                                <th style="width: 12%;">总结余</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statsGroupTableBody">
+                            <tr>
+                                <td colspan="9" style="text-align: center; padding: 40px;">
+                                    <i class="fas fa-spinner fa-spin"></i> 加载中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 表格2：用户详情 -->
+                <h3 style="margin-bottom: 15px;"><i class="fas fa-user-tag"></i> 用户详情</h3>
+                <div class="data-table-wrapper">
+                    <table class="stats-table" id="statsUserTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">用户</th>
+                                <th style="width: 10%;">订单总数</th>
+                                <th style="width: 10%;">商品总数</th>
+                                <th style="width: 13%;">订单总内部价格</th>
+                                <th style="width: 13%;">订单总含税价格</th>
+                                <th style="width: 12%;">总服务价格</th>
+                                <th style="width: 10%;">总税额</th>
+                                <th style="width: 14%;">总结余</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statsUserTableBody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 40px;">
+                                    <i class="fas fa-spinner fa-spin"></i> 加载中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 

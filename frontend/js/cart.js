@@ -324,7 +324,7 @@ function updateCartTotals() {
     const totalTextEl = document.getElementById('cartTotalText');
     if (totalTextEl) {
         let totalText = '总计：';
-        if (currentUser.user_type !== '供应商') {
+        if (currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户') {
             totalText += `内部${formatCurrency(totalInternal)}/含税${formatCurrency(totalTaxIncluded)}`;
         } else {
             totalText += `含税${formatCurrency(totalTaxIncluded)}`;
