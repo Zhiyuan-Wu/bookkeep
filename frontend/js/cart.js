@@ -150,7 +150,7 @@ function renderCartContent() {
                         </div>
                         <div class="cart-item-price">
                             ${(currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户' && item.internal_price !== null && item.internal_price !== undefined) ?
-                                `<span class="price-internal">内部: ${formatCurrency(item.internal_price)}</span>` : ''}
+                                `<span class="price-internal">团购价格: ${formatCurrency(item.internal_price)}</span>` : ''}
                             <span class="price-tax">含税: ${formatCurrency(item.tax_included_price)}</span>
                         </div>
                         <div class="cart-item-quantity">
@@ -183,7 +183,7 @@ function renderCartContent() {
                                 <th style="width: 10%;">品牌</th>
                                 <th style="width: 10%;">型号</th>
                                 <th style="width: 15%;">规格</th>
-                                ${currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户' ? '<th style="width: 11%;">内部价格</th>' : ''}
+                                ${currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户' ? '<th style="width: 11%;">团购价格</th>' : ''}
                                 <th style="width: 11%;">含税价格</th>
                                 <th style="width: 11%;">数量</th>
                             </tr>
@@ -235,7 +235,7 @@ function renderCartContent() {
     for (const supplierId in cart) {
         cart[supplierId].items.forEach(item => {
             if (!item.muted) {
-                // 计算内部价格（非供应商用户且内部价格不为null/undefined）
+                // 计算团购价格（非供应商用户且团购价格不为null/undefined）
                 if (currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户' && item.internal_price !== null && item.internal_price !== undefined) {
                     totalInternal += (item.internal_price || 0) * item.quantity;
                 }
@@ -248,7 +248,7 @@ function renderCartContent() {
     // 构建总计文本
     let totalText = '总计：';
     if (currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户') {
-        totalText += `内部${formatCurrency(totalInternal)}/含税${formatCurrency(totalTaxIncluded)}`;
+        totalText += `团购价格${formatCurrency(totalInternal)}/含税${formatCurrency(totalTaxIncluded)}`;
     } else {
         totalText += `含税${formatCurrency(totalTaxIncluded)}`;
     }
@@ -310,7 +310,7 @@ function updateCartTotals() {
     for (const supplierId in cart) {
         cart[supplierId].items.forEach(item => {
             if (!item.muted) {
-                // 计算内部价格（非供应商用户且内部价格不为null/undefined）
+                // 计算团购价格（非供应商用户且团购价格不为null/undefined）
                 if (currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户' && item.internal_price !== null && item.internal_price !== undefined) {
                     totalInternal += (item.internal_price || 0) * item.quantity;
                 }
@@ -325,7 +325,7 @@ function updateCartTotals() {
     if (totalTextEl) {
         let totalText = '总计：';
         if (currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户') {
-            totalText += `内部${formatCurrency(totalInternal)}/含税${formatCurrency(totalTaxIncluded)}`;
+            totalText += `团购价格${formatCurrency(totalInternal)}/含税${formatCurrency(totalTaxIncluded)}`;
         } else {
             totalText += `含税${formatCurrency(totalTaxIncluded)}`;
         }

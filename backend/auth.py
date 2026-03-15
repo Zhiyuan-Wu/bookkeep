@@ -204,19 +204,19 @@ def require_supplier(user: User = Depends(get_current_user)) -> User:
 
 def can_view_internal_price(user: User) -> bool:
     """
-    判断用户是否可以查看内部价格
+    判断用户是否可以查看团购价格
     
-    普通用户不能查看内部价格，只有管理员和课题组用户可以查看
+    普通用户不能查看团购价格，只有管理员和课题组用户可以查看
     
     Args:
         user: 用户对象
         
     Returns:
-        bool: 是否可以查看内部价格
+        bool: 是否可以查看团购价格
         
     使用样例:
         if can_view_internal_price(current_user):
-            # 显示内部价格
+            # 显示团购价格
     """
     return user.user_type in [USER_TYPE_ADMIN, USER_TYPE_NORMAL]
 

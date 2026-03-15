@@ -84,7 +84,7 @@ function renderProductsTable(products) {
             <td data-label="品牌">${product.brand || '-'}</td>
             <td data-label="型号">${product.model || '-'}</td>
             <td data-label="规格">${product.specification || '-'}</td>
-            ${(currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户') ? `<td data-label="内部价格">${internalPrice}</td>` : ''}
+            ${(currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户') ? `<td data-label="团购价格">${internalPrice}</td>` : ''}
             <td data-label="含税价格">${formatCurrency(product.tax_included_price)}</td>
             <td data-label="供应商">${product.supplier_name || '-'}</td>
         `;
@@ -137,7 +137,7 @@ async function openProductModal(productId = null) {
     
     // 构建表单HTML
     const canViewInternal = currentUser.user_type !== '供应商';
-    const canEditInternal = currentUser.user_type === '管理员';  // 只有管理员可以修改内部价格
+    const canEditInternal = currentUser.user_type === '管理员';  // 只有管理员可以修改团购价格
     const isSupplier = currentUser.user_type === '供应商';
     
     let formHtml = `
@@ -190,13 +190,13 @@ async function openProductModal(productId = null) {
     }
     
     if (canViewInternal) {
-        // 只有管理员可以编辑内部价格，课题组用户只能查看
+        // 只有管理员可以编辑团购价格，课题组用户只能查看
         if (canEditInternal) {
             formHtml += `
                 <div class="form-group">
-                    <label><i class="fas fa-dollar-sign"></i> 内部价格 *</label>
+                    <label><i class="fas fa-dollar-sign"></i> 团购价格 *</label>
                     <input type="text" name="internal_price" value="${product ? (product.internal_price || '') : ''}" 
-                           placeholder="请输入内部价格" required>
+                           placeholder="请输入团购价格" required>
                 </div>
             `;
         } 
@@ -205,7 +205,7 @@ async function openProductModal(productId = null) {
         //     // 课题组用户只能查看，不能编辑
         //     formHtml += `
         //         <div class="form-group">
-        //             <label><i class="fas fa-dollar-sign"></i> 内部价格（联系管理员修改）</label>
+        //             <label><i class="fas fa-dollar-sign"></i> 团购价格（联系管理员修改）</label>
         //             <input type="text" value="${product ? (product.internal_price || '') : ''}" 
         //                    disabled style="background: var(--color-surface-muted);">
         //             <input type="hidden" name="internal_price" value="${product ? (product.internal_price || '') : ''}">
@@ -261,26 +261,26 @@ async function saveProduct(productId) {
         supplier_id: parseInt(formData.supplier_id),
     };
     
-    // 供应商用户新建商品时，内部价格默认为含税价格
+    // 供应商用户新建商品时，团购价格默认为含税价格
     if (currentUser.user_type === '供应商') {
         if (!productId) {
             data.internal_price = data.tax_included_price;
         }
     } else if (currentUser.user_type === '管理员') {
-        // 管理员可以设置内部价格，新建时可以为空（后端会自动设置为含税价格）
+        // 管理员可以设置团购价格，新建时可以为空（后端会自动设置为含税价格）
         if (formData.internal_price) {
             const internalPrice = parseFloat(formData.internal_price);
             if (isNaN(internalPrice) || internalPrice < 0) {
-                showMessage('内部价格必须是有效的正数', 'error');
+                showMessage('团购价格必须是有效的正数', 'error');
                 return;
             }
             data.internal_price = internalPrice;
         } else if (!productId) {
-            // 新建商品时，如果内部价格为空，后端会自动设置为含税价格
+            // 新建商品时，如果团购价格为空，后端会自动设置为含税价格
             data.internal_price = data.tax_included_price;
         }
     } else {
-        // 课题组用户编辑时，不修改内部价格（保持原值）
+        // 课题组用户编辑时，不修改团购价格（保持原值）
         if (productId && formData.internal_price) {
             const internalPrice = parseFloat(formData.internal_price);
             if (!isNaN(internalPrice) && internalPrice >= 0) {

@@ -84,10 +84,10 @@ def calculate_order_totals(items: list, include_internal: bool = True) -> Dict[s
     
     Args:
         items: 订单项列表
-        include_internal: 是否包含内部价格
+        include_internal: 是否包含团购价格
         
     Returns:
-        dict: 包含总内部价格和总含税价格的字典
+        dict: 包含总团购价格和总含税价格的字典
         
     使用样例:
         totals = calculate_order_totals(items, include_internal=True)
@@ -118,7 +118,7 @@ def calculate_tax(total_tax_included: float, total_internal: float) -> float:
     
     Args:
         total_tax_included: 总含税价格
-        total_internal: 总内部价格
+        total_internal: 总团购价格
         
     Returns:
         float: 税额
@@ -131,13 +131,13 @@ def calculate_tax(total_tax_included: float, total_internal: float) -> float:
 
 def remove_internal_price_from_items(items: list) -> list:
     """
-    从订单项列表中移除内部价格字段（用于供应商用户）
+    从订单项列表中移除团购价格字段（用于供应商用户）
     
     Args:
         items: 订单项列表
         
     Returns:
-        list: 移除内部价格后的订单项列表
+        list: 移除团购价格后的订单项列表
         
     使用样例:
         safe_items = remove_internal_price_from_items(items)

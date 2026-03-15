@@ -1,6 +1,6 @@
 """
 购物车功能测试
-测试购物车中内部价格的显示和计算
+测试购物车中团购价格的显示和计算
 """
 
 import pytest
@@ -53,7 +53,7 @@ def setup_db():
             )
             db.add(supplier_user)
         
-        # 创建测试商品（有内部价格和含税价格）
+        # 创建测试商品（有团购价格和含税价格）
         existing_product = db.query(Product).filter(Product.name == "测试商品购物车").first()
         if not existing_product:
             # 确保supplier已提交并获取ID
@@ -89,7 +89,7 @@ def get_auth_headers(username="testadmin_cart", password="testpass"):
 
 
 def test_get_product_with_internal_price_as_admin():
-    """测试管理员获取商品时能看到内部价格"""
+    """测试管理员获取商品时能看到团购价格"""
     headers = get_auth_headers("testadmin_cart")
     
     # 先通过ID获取单个商品（更可靠）
@@ -107,13 +107,13 @@ def test_get_product_with_internal_price_as_admin():
     assert response.status_code == 200
     data = response.json()
     
-    # 管理员应该能看到内部价格
+    # 管理员应该能看到团购价格
     assert data["internal_price"] == 100.0
     assert data["tax_included_price"] == 150.0
 
 
 def test_get_product_with_internal_price_as_normal_user():
-    """测试课题组用户获取商品时能看到内部价格"""
+    """测试课题组用户获取商品时能看到团购价格"""
     headers = get_auth_headers("testnormal_cart")
     
     # 先通过ID获取单个商品（更可靠）
@@ -131,13 +131,13 @@ def test_get_product_with_internal_price_as_normal_user():
     assert response.status_code == 200
     data = response.json()
     
-    # 课题组用户应该能看到内部价格
+    # 课题组用户应该能看到团购价格
     assert data["internal_price"] == 100.0
     assert data["tax_included_price"] == 150.0
 
 
 def test_get_product_without_internal_price_as_supplier():
-    """测试供应商用户获取商品时不能看到内部价格"""
+    """测试供应商用户获取商品时不能看到团购价格"""
     headers = get_auth_headers("testsupplier_cart")
     
     # 获取商品列表
@@ -153,13 +153,13 @@ def test_get_product_without_internal_price_as_supplier():
             break
     
     assert test_product is not None
-    # 供应商用户不应该看到内部价格
+    # 供应商用户不应该看到团购价格
     assert test_product["internal_price"] is None
     assert test_product["tax_included_price"] == 150.0
 
 
 def test_get_single_product_with_internal_price():
-    """测试获取单个商品详情时内部价格正确返回"""
+    """测试获取单个商品详情时团购价格正确返回"""
     headers = get_auth_headers("testadmin_cart")
     
     # 先获取商品ID
@@ -176,13 +176,13 @@ def test_get_single_product_with_internal_price():
     assert response.status_code == 200
     data = response.json()
     
-    # 管理员应该能看到内部价格
+    # 管理员应该能看到团购价格
     assert data["internal_price"] == 100.0
     assert data["tax_included_price"] == 150.0
 
 
 def test_create_order_with_internal_price():
-    """测试创建订单时内部价格正确保存"""
+    """测试创建订单时团购价格正确保存"""
     headers = get_auth_headers("testnormal_cart")
     
     # 先获取supplier ID
@@ -193,7 +193,7 @@ def test_create_order_with_internal_price():
     finally:
         db.close()
     
-    # 创建订单，包含内部价格
+    # 创建订单，包含团购价格
     response = client.post(
         "/api/orders/",
         json={
@@ -204,7 +204,7 @@ def test_create_order_with_internal_price():
                     "name": "测试商品",
                     "model": "TEST",
                     "specification": "规格",
-                    "internal_price": 100.0,  # 包含内部价格
+                    "internal_price": 100.0,  # 包含团购价格
                     "tax_included_price": 150.0,
                     "quantity": 2
                 }
@@ -217,7 +217,7 @@ def test_create_order_with_internal_price():
     data = response.json()
     assert data["status"] == "暂存"
     
-    # 验证订单内容中包含内部价格
+    # 验证订单内容中包含团购价格
     import json
     order_content = json.loads(data["content"])
     assert "items" in order_content
@@ -227,7 +227,7 @@ def test_create_order_with_internal_price():
 
 
 def test_create_order_without_internal_price():
-    """测试创建订单时不包含内部价格（供应商用户场景）"""
+    """测试创建订单时不包含团购价格（供应商用户场景）"""
     headers = get_auth_headers("testsupplier_cart")
     
     # 先获取supplier ID和课题组用户

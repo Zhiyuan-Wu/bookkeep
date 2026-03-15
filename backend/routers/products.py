@@ -22,11 +22,11 @@ router = APIRouter(prefix="/api/products", tags=["products"])
 
 def get_product_response(product: Product, can_view_internal: bool) -> ProductResponse:
     """
-    获取商品响应对象（根据权限决定是否包含内部价格）
+    获取商品响应对象（根据权限决定是否包含团购价格）
     
     Args:
         product: 商品对象
-        can_view_internal: 是否可以查看内部价格
+        can_view_internal: 是否可以查看团购价格
         
     Returns:
         ProductResponse: 商品响应对象
@@ -212,17 +212,17 @@ async def create_product(
                 detail="无权创建商品"
             )
     
-        # 供应商用户只能为自己创建商品，且不能设置内部价格
+        # 供应商用户只能为自己创建商品，且不能设置团购价格
         if current_user.user_type == USER_TYPE_SUPPLIER:
             if not current_user.supplier_id or product_data.supplier_id != current_user.supplier_id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="只能为自己创建商品"
                 )
-            # 供应商用户创建商品时，内部价格默认为含税价格
+            # 供应商用户创建商品时，团购价格默认为含税价格
             internal_price = product_data.tax_included_price
         else:
-            # 管理员可以不提供内部价格，如果不提供则默认为含税价格
+            # 管理员可以不提供团购价格，如果不提供则默认为含税价格
             if product_data.internal_price is None:
                 internal_price = product_data.tax_included_price
             else:
@@ -324,11 +324,11 @@ async def update_product(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="无权修改此商品"
             )
-        # 供应商用户不能修改内部价格
+        # 供应商用户不能修改团购价格
         if product_data.internal_price is not None:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="供应商用户不能修改内部价格"
+                detail="供应商用户不能修改团购价格"
             )
     elif current_user.user_type != USER_TYPE_ADMIN:
         raise HTTPException(

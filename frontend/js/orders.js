@@ -138,7 +138,7 @@ async function viewOrderDetail(orderId) {
                         </div>
                         <div class="cart-item-price">
                             ${(currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户' && item.internal_price !== null && item.internal_price !== undefined) ?
-                                `<span class="price-internal">内部: ${formatCurrency(item.internal_price)}</span>` : ''}
+                                `<span class="price-internal">团购价格: ${formatCurrency(item.internal_price)}</span>` : ''}
                             <span class="price-tax">含税: ${formatCurrency(item.tax_included_price)}</span>
                         </div>
                         <div class="cart-item-quantity">
@@ -153,7 +153,7 @@ async function viewOrderDetail(orderId) {
             itemsHtml = '<table class="data-table"><thead><tr>';
             itemsHtml += '<th>商品名</th><th>品牌</th><th>型号</th><th>规格</th>';
             if (currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户') {
-                itemsHtml += '<th>内部价格</th>';
+                itemsHtml += '<th>团购价格</th>';
             }
             itemsHtml += '<th>含税价格</th><th>数量</th></tr></thead><tbody>';
 
@@ -176,7 +176,7 @@ async function viewOrderDetail(orderId) {
 
         const totalsHtml = `
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--color-border);">
-                ${(currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户' && order.total_internal_price !== null) ? `<p><strong>总内部价格：</strong>${formatCurrency(order.total_internal_price)}</p>` : ''}
+                ${(currentUser.user_type !== '供应商' && currentUser.user_type !== '普通用户' && order.total_internal_price !== null) ? `<p><strong>总团购价格：</strong>${formatCurrency(order.total_internal_price)}</p>` : ''}
                 <p><strong>总含税价格：</strong>${formatCurrency(order.total_tax_included_price)}</p>
             </div>
             <div class="form-actions" style="margin-top: 20px;">

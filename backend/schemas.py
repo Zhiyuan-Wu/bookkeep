@@ -88,7 +88,7 @@ class ProductCreate(BaseModel):
     brand: Optional[str] = Field(None, max_length=100, description="品牌")
     model: Optional[str] = Field(None, max_length=100, description="型号")
     specification: Optional[str] = Field(None, max_length=500, description="规格")
-    internal_price: Optional[float] = Field(None, ge=0, description="内部价格")
+    internal_price: Optional[float] = Field(None, ge=0, description="团购价格")
     tax_included_price: float = Field(..., ge=0, description="含税价格")
     supplier_id: int = Field(..., description="供应商ID")
 
@@ -99,7 +99,7 @@ class ProductUpdate(BaseModel):
     brand: Optional[str] = Field(None, max_length=100, description="品牌")
     model: Optional[str] = Field(None, max_length=100, description="型号")
     specification: Optional[str] = Field(None, max_length=500, description="规格")
-    internal_price: Optional[float] = Field(None, ge=0, description="内部价格")
+    internal_price: Optional[float] = Field(None, ge=0, description="团购价格")
     tax_included_price: Optional[float] = Field(None, ge=0, description="含税价格")
 
 

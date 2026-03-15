@@ -181,7 +181,7 @@ def test_statistics_balance_calculation():
     assert response.status_code == 200
     data = response.json()
     
-    # 验证计算逻辑：总结余 = (订单总含税价格 - 订单总内部价格) - 总税额 - 总服务价格
+    # 验证计算逻辑：总结余 = (订单总含税价格 - 订单总团购价格) - 总税额 - 总服务价格
     if len(data["items"]) > 0:
         for item in data["items"]:
             tax_included = item["total_tax_included_price"]

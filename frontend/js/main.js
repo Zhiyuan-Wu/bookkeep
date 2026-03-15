@@ -60,7 +60,7 @@ function initUI() {
         loadUsers();
     }
     
-    // 内部价格列（供应商用户和普通用户不显示）
+    // 团购价格列（供应商用户和普通用户不显示）
     if (currentUser.user_type === '供应商' || currentUser.user_type === '普通用户') {
         document.getElementById('internalPriceHeader').style.display = 'none';
     } else {

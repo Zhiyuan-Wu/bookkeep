@@ -123,7 +123,7 @@ def test_create_product_as_supplier():
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "供应商商品"
-    # 供应商用户看不到内部价格（返回None）
+    # 供应商用户看不到团购价格（返回None）
     assert data["internal_price"] is None
     assert data["tax_included_price"] == 120.0
 

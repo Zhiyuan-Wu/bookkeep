@@ -129,9 +129,9 @@ async def get_statistics(
         supplier_service_amount = sum(s.amount for s in supplier_services)
         
         # 计算税额和结余
-        # 总税额 = (订单总含税价格 - 订单总内部价格) * 13%
+        # 总税额 = (订单总含税价格 - 订单总团购价格) * 13%
         supplier_tax = (supplier_tax_included_price - supplier_internal_price) * TAX_RATE
-        # 总结余 = (订单总含税价格 - 订单总内部价格) - 总税额 - 总服务价格
+        # 总结余 = (订单总含税价格 - 订单总团购价格) - 总税额 - 总服务价格
         supplier_balance = (supplier_tax_included_price - supplier_internal_price) - supplier_tax - supplier_service_amount
         
         statistics_items.append(StatisticsItem(
@@ -154,9 +154,9 @@ async def get_statistics(
         total_service_amount += supplier_service_amount
     
     # 计算总计
-    # 总税额 = (订单总含税价格 - 订单总内部价格) * 13%
+    # 总税额 = (订单总含税价格 - 订单总团购价格) * 13%
     total_tax = (total_tax_included_price - total_internal_price) * TAX_RATE
-    # 总结余 = (订单总含税价格 - 订单总内部价格) - 总税额 - 总服务价格
+    # 总结余 = (订单总含税价格 - 订单总团购价格) - 总税额 - 总服务价格
     total_balance = (total_tax_included_price - total_internal_price) - total_tax - total_service_amount
     
     total_item = StatisticsItem(

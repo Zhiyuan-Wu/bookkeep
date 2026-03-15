@@ -102,7 +102,7 @@ def test_register_student_manager_not_normal():
     assert response.status_code == 400
 
 def test_student_cannot_view_internal_price():
-    """测试普通用户不能查看内部价格"""
+    """测试普通用户不能查看团购价格"""
     # 登录普通用户
     login_response = client.post(
         "/api/users/login",

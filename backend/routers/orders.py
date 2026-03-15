@@ -257,7 +257,7 @@ async def get_order_detail(
     items = parse_order_content(order.content)
     can_view_internal = can_view_internal_price(current_user)
     
-    # 供应商用户不能看到内部价格
+    # 供应商用户不能看到团购价格
     if not can_view_internal:
         items = remove_internal_price_from_items(items)
     
@@ -327,12 +327,12 @@ async def create_order(
             detail="供应商不存在"
         )
     
-    # 从数据库重新查询所有商品的价格（不接受客户端传入的内部价格）
+    # 从数据库重新查询所有商品的价格（不接受客户端传入的团购价格）
     items_dict = []
     for item in order_data.items:
         item_dict = item.model_dump()
 
-        # 强制从数据库查询商品，验证商品存在并获取正确的内部价格
+        # 强制从数据库查询商品，验证商品存在并获取正确的团购价格
         product = db.query(Product).filter(
             Product.id == item_dict['product_id'],
             Product.supplier_id == order_data.supplier_id,
@@ -345,7 +345,7 @@ async def create_order(
                 detail=f"商品ID {item_dict['product_id']} 不存在或已删除"
             )
 
-        # 使用数据库中的内部价格，忽略客户端传入的值
+        # 使用数据库中的团购价格，忽略客户端传入的值
         item_dict['internal_price'] = product.internal_price
         items_dict.append(item_dict)
     
@@ -687,7 +687,7 @@ async def export_order_excel(
         items = parse_order_content(order.content)
         can_view_internal = can_view_internal_price(current_user)
         
-        # 供应商用户不能看到内部价格
+        # 供应商用户不能看到团购价格
         if not can_view_internal:
             items = remove_internal_price_from_items(items)
         
@@ -704,7 +704,7 @@ async def export_order_excel(
         # 写入表头
         headers = ["商品名", "品牌", "型号", "规格"]
         if can_view_internal:
-            headers.append("内部价格")
+            headers.append("团购价格")
         headers.extend(["含税价格", "数量", "小计"])
         
         for col, header in enumerate(headers, 1):

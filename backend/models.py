@@ -56,7 +56,7 @@ class Product(Base):
     brand = Column(String(100), nullable=True, index=True)  # 品牌（可选）
     model = Column(String(100), index=True)  # 型号
     specification = Column(String(500))  # 规格
-    internal_price = Column(Float, nullable=False)  # 内部价格
+    internal_price = Column(Float, nullable=False)  # 团购价格
     tax_included_price = Column(Float, nullable=False)  # 含税价格
     supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False, index=True)
     is_deleted = Column(Boolean, default=False, nullable=False, index=True)  # 删除状态
