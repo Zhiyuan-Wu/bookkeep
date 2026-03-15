@@ -2,7 +2,8 @@
 统计信息路由
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 from backend.database import get_db
@@ -17,31 +18,41 @@ from backend.config import (
     USER_TYPE_ADMIN, USER_TYPE_NORMAL, USER_TYPE_SUPPLIER, USER_TYPE_STUDENT,
     ORDER_STATUS_CONFIRMED, SERVICE_STATUS_CONFIRMED, TAX_RATE
 )
+from backend.logger import logger
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from datetime import datetime
+import io
 
 router = APIRouter(prefix="/api/statistics", tags=["statistics"])
 
 
 @router.get("/", response_model=StatisticsResponse)
 async def get_statistics(
+    start_date: str = Query(None, description="开始日期，格式：YYYY-MM-DD"),
+    end_date: str = Query(None, description="结束日期，格式：YYYY-MM-DD"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     获取统计信息（课题组用户和管理员）
     按照供应商分组统计订单和服务记录
-    
+
     Args:
+        start_date: 开始日期（可选），格式：YYYY-MM-DD
+        end_date: 结束日期（可选），格式：YYYY-MM-DD
         current_user: 当前登录用户
         db: 数据库会话
-        
+
     Returns:
         StatisticsResponse: 统计信息响应
-        
+
     Raises:
         HTTPException: 如果用户类型不允许
-        
+
     使用样例:
         GET /api/statistics/
+        GET /api/statistics/?start_date=2025-01-01&end_date=2025-12-31
     """
     # 只有课题组用户和管理员可以查看统计信息（普通用户不能查看）
     if current_user.user_type == USER_TYPE_SUPPLIER or current_user.user_type == USER_TYPE_STUDENT:
@@ -51,9 +62,30 @@ async def get_statistics(
         )
     
     can_view_internal = can_view_internal_price(current_user)
-    
+
     # 构建订单查询（只统计确认状态的订单）
     order_query = db.query(Order).filter(Order.status == ORDER_STATUS_CONFIRMED)
+
+    # 添加时间范围过滤
+    if start_date:
+        try:
+            start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+            order_query = order_query.filter(Order.created_at >= start_dt)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="开始日期格式错误，应为YYYY-MM-DD"
+            )
+    if end_date:
+        try:
+            # 结束日期包含当天，所以需要加23:59:59
+            end_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            order_query = order_query.filter(Order.created_at <= end_dt)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="结束日期格式错误，应为YYYY-MM-DD"
+            )
     if current_user.user_type == USER_TYPE_NORMAL:
         # 课题组用户统计自己的订单以及其管理学生的订单
         from sqlalchemy import or_
@@ -68,9 +100,17 @@ async def get_statistics(
             )
         else:
             order_query = order_query.filter(Order.user_id == current_user.id)
-    
+
     # 构建服务记录查询（只统计确认状态的服务）
     service_query = db.query(ServiceRecord).filter(ServiceRecord.status == SERVICE_STATUS_CONFIRMED)
+
+    # 添加时间范围过滤（服务记录）
+    if start_date:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        service_query = service_query.filter(ServiceRecord.created_at >= start_dt)
+    if end_date:
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+        service_query = service_query.filter(ServiceRecord.created_at <= end_dt)
     if current_user.user_type == USER_TYPE_NORMAL:
         # 课题组用户统计自己的服务记录以及其管理学生的服务记录
         from sqlalchemy import or_
@@ -179,6 +219,8 @@ async def get_statistics(
 
 @router.get("/by-user", response_model=UserStatisticsResponse)
 async def get_statistics_by_user(
+    start_date: str = Query(None, description="开始日期，格式：YYYY-MM-DD"),
+    end_date: str = Query(None, description="结束日期，格式：YYYY-MM-DD"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -190,6 +232,8 @@ async def get_statistics_by_user(
     2. 用户详细统计（details + detail_total）
 
     Args:
+        start_date: 开始日期（可选），格式：YYYY-MM-DD
+        end_date: 结束日期（可选），格式：YYYY-MM-DD
         current_user: 当前登录用户
         db: 数据库会话
 
@@ -201,6 +245,7 @@ async def get_statistics_by_user(
 
     使用样例:
         GET /api/statistics/by-user
+        GET /api/statistics/by-user?start_date=2025-01-01&end_date=2025-12-31
     """
     # 只有课题组用户和管理员可以查看统计信息（普通用户不能查看）
     if current_user.user_type == USER_TYPE_SUPPLIER or current_user.user_type == USER_TYPE_STUDENT:
@@ -213,6 +258,27 @@ async def get_statistics_by_user(
 
     # 构建订单查询（只统计确认状态的订单）
     order_query = db.query(Order).filter(Order.status == ORDER_STATUS_CONFIRMED)
+
+    # 添加时间范围过滤
+    if start_date:
+        try:
+            start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+            order_query = order_query.filter(Order.created_at >= start_dt)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="开始日期格式错误，应为YYYY-MM-DD"
+            )
+    if end_date:
+        try:
+            end_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            order_query = order_query.filter(Order.created_at <= end_dt)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="结束日期格式错误，应为YYYY-MM-DD"
+            )
+
     if current_user.user_type == USER_TYPE_NORMAL:
         # 课题组用户统计自己的订单以及其管理学生的订单
         from sqlalchemy import or_
@@ -230,6 +296,15 @@ async def get_statistics_by_user(
 
     # 构建服务记录查询（只统计确认状态的服务）
     service_query = db.query(ServiceRecord).filter(ServiceRecord.status == SERVICE_STATUS_CONFIRMED)
+
+    # 添加时间范围过滤（服务记录）
+    if start_date:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        service_query = service_query.filter(ServiceRecord.created_at >= start_dt)
+    if end_date:
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+        service_query = service_query.filter(ServiceRecord.created_at <= end_dt)
+
     if current_user.user_type == USER_TYPE_NORMAL:
         # 课题组用户统计自己的服务记录以及其管理学生的服务记录
         from sqlalchemy import or_
@@ -419,5 +494,348 @@ async def get_statistics_by_user(
             total_tax=total_tax,
             total_balance=total_balance
         )
+    )
+
+
+@router.get("/export/supplier")
+async def export_supplier_statistics(
+    start_date: str = Query(None, description="开始日期，格式：YYYY-MM-DD"),
+    end_date: str = Query(None, description="结束日期，格式：YYYY-MM-DD"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    导出按供应商统计的Excel文件
+
+    Args:
+        start_date: 开始日期（可选），格式：YYYY-MM-DD
+        end_date: 结束日期（可选），格式：YYYY-MM-DD
+        current_user: 当前登录用户
+        db: 数据库会话
+
+    Returns:
+        StreamingResponse: Excel文件流
+
+    Raises:
+        HTTPException: 如果用户类型不允许
+
+    使用样例:
+        GET /api/statistics/export/supplier
+        GET /api/statistics/export/supplier?start_date=2025-01-01&end_date=2025-12-31
+    """
+    # 调用统计接口获取数据
+    stats_data = await get_statistics(start_date, end_date, current_user, db)
+
+    # 创建Excel工作簿
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "按供应商统计"
+
+    # 设置标题样式
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    cell_alignment = Alignment(horizontal="right", vertical="center")
+    currency_alignment = Alignment(horizontal="right", vertical="center")
+
+    # 写入表头
+    headers = ["供应商", "订单总数", "商品总数", "订单总团购价格", "订单总含税价格", "总服务价格", "总税额", "总结余"]
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+
+    # 写入数据
+    for row, item in enumerate(stats_data.items, 2):
+        ws.cell(row=row, column=1, value=item.supplier_name).alignment = cell_alignment
+        ws.cell(row=row, column=2, value=item.order_count).alignment = cell_alignment
+        ws.cell(row=row, column=3, value=item.product_count).alignment = cell_alignment
+        ws.cell(row=row, column=4, value=item.total_internal_price).alignment = currency_alignment
+        ws.cell(row=row, column=5, value=item.total_tax_included_price).alignment = currency_alignment
+        ws.cell(row=row, column=6, value=item.total_service_amount).alignment = currency_alignment
+        ws.cell(row=row, column=7, value=item.total_tax).alignment = currency_alignment
+        ws.cell(row=row, column=8, value=item.total_balance).alignment = currency_alignment
+
+    # 写入总计行
+    total_row = len(stats_data.items) + 2
+    total_cell = ws.cell(row=total_row, column=1, value=stats_data.total.supplier_name)
+    total_cell.font = Font(bold=True)
+    total_cell.alignment = cell_alignment
+
+    for col in range(2, 9):
+        cell = ws.cell(row=total_row, column=col)
+        cell.font = Font(bold=True)
+        cell.alignment = currency_alignment
+
+    ws.cell(row=total_row, column=2, value=stats_data.total.order_count)
+    ws.cell(row=total_row, column=3, value=stats_data.total.product_count)
+    ws.cell(row=total_row, column=4, value=stats_data.total.total_internal_price)
+    ws.cell(row=total_row, column=5, value=stats_data.total.total_tax_included_price)
+    ws.cell(row=total_row, column=6, value=stats_data.total.total_service_amount)
+    ws.cell(row=total_row, column=7, value=stats_data.total.total_tax)
+    ws.cell(row=total_row, column=8, value=stats_data.total.total_balance)
+
+    # 调整列宽
+    ws.column_dimensions['A'].width = 20
+    ws.column_dimensions['B'].width = 12
+    ws.column_dimensions['C'].width = 12
+    ws.column_dimensions['D'].width = 18
+    ws.column_dimensions['E'].width = 18
+    ws.column_dimensions['F'].width = 15
+    ws.column_dimensions['G'].width = 12
+    ws.column_dimensions['H'].width = 15
+
+    # 保存到内存
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    logger.info(
+        f"按供应商统计导出成功: 用户={current_user.username}",
+        extra={
+            "user_id": current_user.id,
+            "user_type": current_user.user_type,
+            "start_date": start_date,
+            "end_date": end_date
+        }
+    )
+
+    from urllib.parse import quote
+    filename = f"按供应商统计_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
+    encoded_filename = quote(filename, safe='')
+
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
+        }
+    )
+
+
+@router.get("/export/user")
+async def export_user_statistics(
+    start_date: str = Query(None, description="开始日期，格式：YYYY-MM-DD"),
+    end_date: str = Query(None, description="结束日期，格式：YYYY-MM-DD"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    导出按用户统计的Excel文件
+
+    Args:
+        start_date: 开始日期（可选），格式：YYYY-MM-DD
+        end_date: 结束日期（可选），格式：YYYY-MM-DD
+        current_user: 当前登录用户
+        db: 数据库会话
+
+    Returns:
+        StreamingResponse: Excel文件流
+
+    Raises:
+        HTTPException: 如果用户类型不允许
+
+    使用样例:
+        GET /api/statistics/export/user
+        GET /api/statistics/export/user?start_date=2025-01-01&end_date=2025-12-31
+    """
+    # 调用统计接口获取数据
+    stats_data = await get_statistics_by_user(start_date, end_date, current_user, db)
+
+    # 创建Excel工作簿
+    wb = Workbook()
+
+    # 设置样式
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    cell_alignment = Alignment(horizontal="right", vertical="center")
+    currency_alignment = Alignment(horizontal="right", vertical="center")
+    group_header_fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+
+    # 第一个Sheet：课题组统计
+    ws1 = wb.active
+    ws1.title = "课题组统计"
+
+    # 写入课题组统计表头
+    headers1 = ["课题组", "用户数", "订单总数", "商品总数", "订单总团购价格", "订单总含税价格", "总服务价格", "总税额", "总结余"]
+    for col, header in enumerate(headers1, 1):
+        cell = ws1.cell(row=1, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+
+    # 写入课题组数据
+    for row, item in enumerate(stats_data.groups, 2):
+        ws1.cell(row=row, column=1, value=item.manager_name).alignment = cell_alignment
+        ws1.cell(row=row, column=2, value=item.user_count).alignment = cell_alignment
+        ws1.cell(row=row, column=3, value=item.order_count).alignment = cell_alignment
+        ws1.cell(row=row, column=4, value=item.product_count).alignment = cell_alignment
+        ws1.cell(row=row, column=5, value=item.total_internal_price).alignment = currency_alignment
+        ws1.cell(row=row, column=6, value=item.total_tax_included_price).alignment = currency_alignment
+        ws1.cell(row=row, column=7, value=item.total_service_amount).alignment = currency_alignment
+        ws1.cell(row=row, column=8, value=item.total_tax).alignment = currency_alignment
+        ws1.cell(row=row, column=9, value=item.total_balance).alignment = currency_alignment
+
+    # 写入总计行
+    total_row = len(stats_data.groups) + 2
+    ws1.cell(row=total_row, column=1, value=stats_data.group_total.manager_name).font = Font(bold=True)
+    for col in range(2, 10):
+        cell = ws1.cell(row=total_row, column=col)
+        cell.font = Font(bold=True)
+        cell.alignment = currency_alignment
+
+    ws1.cell(row=total_row, column=2, value=stats_data.group_total.user_count)
+    ws1.cell(row=total_row, column=3, value=stats_data.group_total.order_count)
+    ws1.cell(row=total_row, column=4, value=stats_data.group_total.product_count)
+    ws1.cell(row=total_row, column=5, value=stats_data.group_total.total_internal_price)
+    ws1.cell(row=total_row, column=6, value=stats_data.group_total.total_tax_included_price)
+    ws1.cell(row=total_row, column=7, value=stats_data.group_total.total_service_amount)
+    ws1.cell(row=total_row, column=8, value=stats_data.group_total.total_tax)
+    ws1.cell(row=total_row, column=9, value=stats_data.group_total.total_balance)
+
+    # 调整列宽
+    ws1.column_dimensions['A'].width = 20
+    ws1.column_dimensions['B'].width = 10
+    ws1.column_dimensions['C'].width = 12
+    ws1.column_dimensions['D'].width = 12
+    ws1.column_dimensions['E'].width = 18
+    ws1.column_dimensions['F'].width = 18
+    ws1.column_dimensions['G'].width = 15
+    ws1.column_dimensions['H'].width = 12
+    ws1.column_dimensions['I'].width = 15
+
+    # 第二个Sheet：用户详情
+    ws2 = wb.create_sheet("用户详情")
+
+    # 写入用户详情表头
+    headers2 = ["用户", "订单总数", "商品总数", "订单总团购价格", "订单总含税价格", "总服务价格", "总税额", "总结余"]
+    for col, header in enumerate(headers2, 1):
+        cell = ws2.cell(row=1, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+
+    # 按课题组分组
+    grouped_users = {}
+    for user in stats_data.details:
+        group_id = user.group_id
+        if group_id not in grouped_users:
+            grouped_users[group_id] = {
+                "group_name": user.group_name,
+                "users": []
+            }
+        grouped_users[group_id]["users"].append(user)
+
+    # 写入用户详情数据
+    current_row = 2
+    for group_id in sorted(grouped_users.keys()):
+        group = grouped_users[group_id]
+
+        # 写入课题组小计标题
+        group_title_cell = ws2.cell(row=current_row, column=1, value=f"{group['group_name']}")
+        group_title_cell.fill = group_header_fill
+        group_title_cell.font = Font(bold=True)
+        ws2.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=8)
+        current_row += 1
+
+        # 计算课题组小计
+        group_order_count = 0
+        group_product_count = 0
+        group_internal_price = 0.0
+        group_tax_included_price = 0.0
+        group_service_amount = 0.0
+        group_tax = 0.0
+        group_balance = 0.0
+
+        # 写入该课题组的用户
+        for user in group["users"]:
+            ws2.cell(row=current_row, column=1, value=user.username).alignment = cell_alignment
+            ws2.cell(row=current_row, column=2, value=user.order_count).alignment = cell_alignment
+            ws2.cell(row=current_row, column=3, value=user.product_count).alignment = cell_alignment
+            ws2.cell(row=current_row, column=4, value=user.total_internal_price).alignment = currency_alignment
+            ws2.cell(row=current_row, column=5, value=user.total_tax_included_price).alignment = currency_alignment
+            ws2.cell(row=current_row, column=6, value=user.total_service_amount).alignment = currency_alignment
+            ws2.cell(row=current_row, column=7, value=user.total_tax).alignment = currency_alignment
+            ws2.cell(row=current_row, column=8, value=user.total_balance).alignment = currency_alignment
+
+            group_order_count += user.order_count
+            group_product_count += user.product_count
+            group_internal_price += user.total_internal_price
+            group_tax_included_price += user.total_tax_included_price
+            group_service_amount += user.total_service_amount
+            group_tax += user.total_tax
+            group_balance += user.total_balance
+
+            current_row += 1
+
+        # 写入课题组小计
+        subtotal_cell = ws2.cell(row=current_row, column=1, value=f"{group['group_name']} 小计")
+        subtotal_cell.font = Font(bold=True)
+        for col in range(2, 9):
+            cell = ws2.cell(row=current_row, column=col)
+            cell.font = Font(bold=True)
+            cell.alignment = currency_alignment
+
+        ws2.cell(row=current_row, column=2, value=group_order_count)
+        ws2.cell(row=current_row, column=3, value=group_product_count)
+        ws2.cell(row=current_row, column=4, value=group_internal_price)
+        ws2.cell(row=current_row, column=5, value=group_tax_included_price)
+        ws2.cell(row=current_row, column=6, value=group_service_amount)
+        ws2.cell(row=current_row, column=7, value=group_tax)
+        ws2.cell(row=current_row, column=8, value=group_balance)
+        current_row += 2  # 空一行
+
+    # 写入总计行
+    ws2.cell(row=current_row, column=1, value=stats_data.detail_total.username).font = Font(bold=True)
+    for col in range(2, 9):
+        cell = ws2.cell(row=current_row, column=col)
+        cell.font = Font(bold=True)
+        cell.alignment = currency_alignment
+
+    ws2.cell(row=current_row, column=2, value=stats_data.detail_total.order_count)
+    ws2.cell(row=current_row, column=3, value=stats_data.detail_total.product_count)
+    ws2.cell(row=current_row, column=4, value=stats_data.detail_total.total_internal_price)
+    ws2.cell(row=current_row, column=5, value=stats_data.detail_total.total_tax_included_price)
+    ws2.cell(row=current_row, column=6, value=stats_data.detail_total.total_service_amount)
+    ws2.cell(row=current_row, column=7, value=stats_data.detail_total.total_tax)
+    ws2.cell(row=current_row, column=8, value=stats_data.detail_total.total_balance)
+
+    # 调整列宽
+    ws2.column_dimensions['A'].width = 20
+    ws2.column_dimensions['B'].width = 12
+    ws2.column_dimensions['C'].width = 12
+    ws2.column_dimensions['D'].width = 18
+    ws2.column_dimensions['E'].width = 18
+    ws2.column_dimensions['F'].width = 15
+    ws2.column_dimensions['G'].width = 12
+    ws2.column_dimensions['H'].width = 15
+
+    # 保存到内存
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    logger.info(
+        f"按用户统计导出成功: 用户={current_user.username}",
+        extra={
+            "user_id": current_user.id,
+            "user_type": current_user.user_type,
+            "start_date": start_date,
+            "end_date": end_date
+        }
+    )
+
+    from urllib.parse import quote
+    filename = f"按用户统计_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
+    encoded_filename = quote(filename, safe='')
+
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
+        }
     )
 

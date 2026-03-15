@@ -7,10 +7,128 @@ let statisticsData = null;  // 按供应商统计数据
 let userStatisticsData = null;  // 按用户统计数据
 let currentStatsView = 'supplier';  // 当前视图：'supplier' 或 'user'
 
+/**
+ * 生成时间范围选项
+ * 根据当前时间生成年份和季度选项
+ * 返回包含当前年度、上年度、当前季度、上季度选项的数组
+ */
+function generateTimeRangeOptions() {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-11
+    const currentQuarter = Math.floor(currentMonth / 3) + 1; // 1-4
+
+    const options = [
+        { value: '', label: '所有' },
+    ];
+
+    // 添加当前年度和上年度
+    options.push({ value: `${currentYear}-01-01,${currentYear}-12-31`, label: `${currentYear}年度` });
+    options.push({ value: `${currentYear - 1}-01-01,${currentYear - 1}-12-31`, label: `${currentYear - 1}年度` });
+
+    // 添加当前季度
+    const currentQuarterStart = new Date(currentYear, (currentQuarter - 1) * 3, 1);
+    const currentQuarterEnd = new Date(currentYear, currentQuarter * 3, 0); // 季度最后一天
+    const currentQuarterLabel = `${currentYear}年第${currentQuarter}季度`;
+    options.push({
+        value: `${formatDateForAPI(currentQuarterStart)},${formatDateForAPI(currentQuarterEnd)}`,
+        label: currentQuarterLabel
+    });
+
+    // 添加上季度
+    let lastQuarterYear = currentYear;
+    let lastQuarter = currentQuarter - 1;
+    if (lastQuarter === 0) {
+        lastQuarterYear = currentYear - 1;
+        lastQuarter = 4;
+    }
+    const lastQuarterStart = new Date(lastQuarterYear, (lastQuarter - 1) * 3, 1);
+    const lastQuarterEnd = new Date(lastQuarterYear, lastQuarter * 3, 0);
+    options.push({
+        value: `${formatDateForAPI(lastQuarterStart)},${formatDateForAPI(lastQuarterEnd)}`,
+        label: `${lastQuarterYear}年第${lastQuarter}季度`
+    });
+
+    return options;
+}
+
+/**
+ * 格式化日期为 YYYY-MM-DD 格式（用于API请求）
+ * 支持Date对象或日期字符串
+ */
+function formatDateForAPI(date) {
+    // 如果是字符串，先转换为Date对象
+    const dateObj = date instanceof Date ? date : new Date(date);
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+/**
+ * 初始化时间范围下拉框
+ */
+function initTimeRangeSelects() {
+    const options = generateTimeRangeOptions();
+
+    // 按供应商统计的时间范围选择器
+    const supplierSelect = document.getElementById('supplierTimeRange');
+    if (supplierSelect) {
+        supplierSelect.innerHTML = '';
+        options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.label;
+            supplierSelect.appendChild(option);
+        });
+
+        // 监听选择变化
+        supplierSelect.addEventListener('change', () => {
+            loadStatistics();
+        });
+    }
+
+    // 按用户统计的时间范围选择器
+    const userSelect = document.getElementById('userTimeRange');
+    if (userSelect) {
+        userSelect.innerHTML = '';
+        options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.label;
+            userSelect.appendChild(option);
+        });
+
+        // 监听选择变化
+        userSelect.addEventListener('change', () => {
+            loadUserStatistics();
+        });
+    }
+}
+
+/**
+ * 获取当前选择的时间范围
+ * 返回 { startDate, endDate } 或 null
+ */
+function getSelectedTimeRange(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select || !select.value) {
+        return null;
+    }
+    const [startDate, endDate] = select.value.split(',');
+    return { startDate, endDate };
+}
+
 // 加载统计信息
 async function loadStatistics() {
     try {
-        const response = await apiRequest('/statistics/');
+        const timeRange = getSelectedTimeRange('supplierTimeRange');
+        let url = '/statistics/?';
+        if (timeRange) {
+            url += `start_date=${timeRange.startDate}&end_date=${timeRange.endDate}`;
+        }
+
+        const response = await apiRequest(url);
         statisticsData = { items: response.items, total: response.total };
         renderStatisticsTable(statisticsData.items, statisticsData.total);
     } catch (error) {
@@ -197,7 +315,13 @@ function renderStatisticsTable(items, total) {
 // 加载按用户统计
 async function loadUserStatistics() {
     try {
-        const response = await apiRequest('/statistics/by-user');
+        const timeRange = getSelectedTimeRange('userTimeRange');
+        let url = '/statistics/by-user?';
+        if (timeRange) {
+            url += `start_date=${timeRange.startDate}&end_date=${timeRange.endDate}`;
+        }
+
+        const response = await apiRequest(url);
         userStatisticsData = {
             groups: response.groups,
             groupTotal: response.group_total,
@@ -528,6 +652,103 @@ function initStatsTabs() {
             renderUserStatisticsTables();
         }
     });
+
+    // 初始化时间范围下拉框
+    initTimeRangeSelects();
+}
+
+/**
+ * 导出按供应商统计的Excel
+ */
+async function exportSupplierStatistics() {
+    try {
+        const timeRange = getSelectedTimeRange('supplierTimeRange');
+        let url = '/api/statistics/export/supplier?';
+        if (timeRange) {
+            url += `start_date=${timeRange.startDate}&end_date=${timeRange.endDate}`;
+        }
+
+        // 使用fetch获取文件，使用credentials: 'include'来携带cookie
+        const response = await fetch(url, {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('导出失败');
+        }
+
+        // 获取文件名
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = '按供应商统计.xlsx';
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+            if (filenameMatch) {
+                filename = decodeURIComponent(filenameMatch[1]);
+            }
+        }
+
+        // 下载文件
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const downloadLink = document.createElement('a');
+        downloadLink.href = blobUrl;
+        downloadLink.download = filename;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        window.URL.revokeObjectURL(blobUrl);
+
+        showMessage('导出成功', 'success');
+    } catch (error) {
+        showMessage('导出失败: ' + error.message, 'error');
+    }
+}
+
+/**
+ * 导出按用户统计的Excel
+ */
+async function exportUserStatistics() {
+    try {
+        const timeRange = getSelectedTimeRange('userTimeRange');
+        let url = '/api/statistics/export/user?';
+        if (timeRange) {
+            url += `start_date=${timeRange.startDate}&end_date=${timeRange.endDate}`;
+        }
+
+        // 使用fetch获取文件，使用credentials: 'include'来携带cookie
+        const response = await fetch(url, {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('导出失败');
+        }
+
+        // 获取文件名
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = '按用户统计.xlsx';
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+            if (filenameMatch) {
+                filename = decodeURIComponent(filenameMatch[1]);
+            }
+        }
+
+        // 下载文件
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const downloadLink = document.createElement('a');
+        downloadLink.href = blobUrl;
+        downloadLink.download = filename;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        window.URL.revokeObjectURL(blobUrl);
+
+        showMessage('导出成功', 'success');
+    } catch (error) {
+        showMessage('导出失败: ' + error.message, 'error');
+    }
 }
 
 document.addEventListener('DOMContentLoaded', initStatsTabs);

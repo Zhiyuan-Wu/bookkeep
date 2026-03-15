@@ -318,6 +318,16 @@
 
             <!-- 按供应商统计容器 -->
             <div id="statsBySupplierContainer">
+                <!-- 时间范围选择和导出按钮 -->
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
+                    <span style="white-space: nowrap;">时间范围：</span>
+                    <select id="supplierTimeRange" style="padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; width: 150px;">
+                        <option value="">所有</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="exportSupplierStatistics()">
+                        <i class="fas fa-file-excel"></i> 导出Excel
+                    </button>
+                </div>
                 <div class="data-table-wrapper">
                     <table class="stats-table">
                         <thead>
@@ -345,6 +355,16 @@
 
             <!-- 按用户统计容器 -->
             <div id="statsByUserContainer" style="display: none;">
+                <!-- 时间范围选择和导出按钮 -->
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
+                    <span style="white-space: nowrap;">时间范围：</span>
+                    <select id="userTimeRange" style="padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; width: 150px;">
+                        <option value="">所有</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="exportUserStatistics()">
+                        <i class="fas fa-file-excel"></i> 导出Excel
+                    </button>
+                </div>
                 <!-- 表格1：课题组统计 -->
                 <h3 style="margin-bottom: 15px;"><i class="fas fa-layer-group"></i> 按课题组统计</h3>
                 <div class="data-table-wrapper" style="margin-bottom: 30px;">
@@ -466,15 +486,15 @@
     <!-- 消息提示 -->
     <div id="message" class="message hidden"></div>
 
-    <script src="/frontend/js/utils.js?v=1.0.1"></script>
-    <script src="/frontend/js/auth.js?v=1.0.1"></script>
-    <script src="/frontend/js/products.js?v=1.0.1"></script>
-    <script src="/frontend/js/orders.js?v=1.0.1"></script>
-    <script src="/frontend/js/services.js?v=1.0.1"></script>
-    <script src="/frontend/js/statistics.js?v=1.0.1"></script>
-    <script src="/frontend/js/cart.js?v=1.0.1"></script>
-    <script src="/frontend/js/settings.js?v=1.0.1"></script>
-    <script src="/frontend/js/main.js?v=1.0.1"></script>
+    <script src="/frontend/js/utils.js?v=1.0.6"></script>
+    <script src="/frontend/js/auth.js?v=1.0.6"></script>
+    <script src="/frontend/js/products.js?v=1.0.6"></script>
+    <script src="/frontend/js/orders.js?v=1.0.6"></script>
+    <script src="/frontend/js/services.js?v=1.0.6"></script>
+    <script src="/frontend/js/statistics.js?v=1.0.6"></script>
+    <script src="/frontend/js/cart.js?v=1.0.6"></script>
+    <script src="/frontend/js/settings.js?v=1.0.6"></script>
+    <script src="/frontend/js/main.js?v=1.0.6"></script>
 </body>
 </html>
 
